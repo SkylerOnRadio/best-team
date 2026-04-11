@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Evidence Protector – Automated Log Integrity & Behavioral Monitor
-Detects gaps, out-of-order logs, and 'low-and-slow' attacker patterns.
+Evidence Protector v2.5 – Universal Log Integrity & Behavioral Monitor
+Detects gaps, out-of-order logs, and 'low-and-slow' attacker patterns across 
+Linux, Windows, Web, and Network log formats.
 """
 
 import argparse
@@ -10,8 +11,11 @@ import json
 import os
 import re
 import sys
+import platform
+import time
+import socket
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 
 # ── ANSI colour codes ────────────────────────────────────────────────────────
 USE_COLOUR = sys.stdout.isatty() and os.name != "nt"
@@ -26,46 +30,109 @@ class C:
     GREY   = "\033[90m"  if USE_COLOUR else ""
     DIM    = "\033[2m"   if USE_COLOUR else ""
 
-# ── Extraction Patterns ──────────────────────────────────────────────────────
+# ── Enhanced Universal Timestamp patterns ────────────────────────────────────
 TIMESTAMP_PATTERNS = [
+    # ISO 8601 (Web/Cloud)
     (r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?",
-     ["%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"]),
-    (r"\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2}", ["%d/%b/%Y:%H:%M:%S"]),
-    (r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}", ["%b %d %H:%M:%S", "%b  %d %H:%M:%S"]),
-    (r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", ["%Y-%m-%d %H:%M:%S"]),
-    (r"\b1[0-9]{9}\b", None),
+     ["%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"], "ISO-8601"),
+    # Apache Common / Nginx
+    (r"\[\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}\]", ["[%d/%b/%Y:%H:%M:%S %z]"], "Web (Apache/Nginx)"),
+    # Syslog (RFC3164)
+    (r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}",
+     ["%b %d %H:%M:%S", "%b  %d %H:%M:%S"], "Linux Syslog"),
+    # Windows Event Log (Standard)
+    (r"\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}", ["%Y/%m/%d %H:%M:%S"], "Windows Event"),
+    # Cisco / Network Hardware
+    (r"\d{2}:\d{2}:\d{2}\.\d+ \w{3} \w{3} \d{2} \d{4}", ["%H:%M:%S.%f %Z %a %b %d %Y"], "Network (Cisco)"),
+    # Unix Epoch
+    (r"\b1[0-9]{9}\b", None, "Unix Epoch"),
+    # Common US format
+    (r"\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}", ["%m/%d/%Y %H:%M:%S"], "Generic (MM/DD/YYYY)"),
 ]
 
 IP_PATTERN = r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"
 ATTACK_KEYWORDS = {
-    "BRUTE_FORCE": [r"failed", r"invalid user", r"authentication failure", r"password"],
-    "SCANNING":    [r"nmap", r"scan", r"probe", r"port"],
-    "PING":        [r"icmp", r"echo request", r"ping"],
-    "UNUSUAL":     [r"proxy", r"tor", r"vpn", r"tunnel"]
+    "BRUTE_FORCE": [r"failed", r"invalid user", r"auth fail", r"password", r"denied"],
+    "SCANNING":    [r"nmap", r"scan", r"probe", r"port", r"sqli", r"xss"],
+    "PING":        [r"icmp", r"echo request", r"ping", r"unreachable"],
+    "UNUSUAL":     [r"proxy", r"tor", r"vpn", r"tunnel", r"hidden", r"suspicious"]
 }
 
 CURRENT_YEAR = datetime.now().year
 
-# ── Helper Functions ────────────────────────────────────────────────────────
-def _strip_tz(raw: str) -> str:
-    return re.sub(r"(?:Z|[+-]\d{2}:?\d{2})$", "", raw).strip()
+# ── Helper Utilities ─────────────────────────────────────────────────────────
+def _bar(value: int, max_val: int, width: int = 30, char: str = "█") -> str:
+    """Generates a visual progress bar string."""
+    filled = int(round(value / max_val * width)) if max_val else 0
+    return char * filled + C.DIM + "░" * (width - filled) + C.RESET
 
-def parse_timestamp(line: str) -> Optional[datetime]:
-    for pattern, fmts in TIMESTAMP_PATTERNS:
+def _risk_score(gaps: list, threats: list) -> int:
+    """Return 0-100 composite risk score."""
+    if not gaps and not threats: return 0
+    raw = sum({"CRITICAL": 40, "HIGH": 20, "MEDIUM": 8, "LOW": 2, "REVERSED": 50}.get(g["severity"], 0) for g in gaps)
+    raw += len(threats) * 15
+    return min(raw, 100)
+
+def _human_duration(seconds: float) -> str:
+    """Converts seconds into a human readable string."""
+    seconds = abs(int(seconds))
+    if seconds < 60: return f"{seconds}s"
+    if seconds < 3600:
+        m, s = divmod(seconds, 60)
+        return f"{m}m {s}s"
+    h, rem = divmod(seconds, 3600)
+    return f"{h}h {rem // 60}m"
+
+# ── Metadata Gathering ───────────────────────────────────────────────────────
+def get_system_metadata() -> Dict:
+    return {
+        "os_type": platform.system(),
+        "os_release": platform.release(),
+        "os_version": platform.version(),
+        "architecture": platform.machine(),
+        "hostname": socket.gethostname(),
+        "processor": platform.processor(),
+        "python_version": sys.version.split()[0],
+        "scan_timestamp": datetime.now().isoformat()
+    }
+
+def get_file_metadata(filepath: str) -> Dict:
+    stats = os.stat(filepath)
+    return {
+        "filename": os.path.basename(filepath),
+        "path": os.path.abspath(filepath),
+        "size_bytes": stats.st_size,
+        "created_at": datetime.fromtimestamp(stats.st_ctime).isoformat(),
+        "modified_at": datetime.fromtimestamp(stats.st_mtime).isoformat(),
+        "extension": os.path.splitext(filepath)[1]
+    }
+
+# ── Parsing Helpers ──────────────────────────────────────────────────────────
+def _strip_tz(raw: str) -> str:
+    # Handle timezone brackets [01/Jan/2024...]
+    raw = raw.strip("[]")
+    return re.sub(r"(?:Z|[+-]\d{2}:?\d{2}|[+-]\d{4})$", "", raw).strip()
+
+def parse_timestamp(line: str) -> Tuple[Optional[datetime], Optional[str]]:
+    for pattern, fmts, label in TIMESTAMP_PATTERNS:
         m = re.search(pattern, line)
         if not m: continue
         raw = m.group()
-        if fmts is None:
-            try: return datetime.utcfromtimestamp(int(raw))
+        
+        if fmts is None: # Unix Epoch
+            try: return datetime.fromtimestamp(int(raw), tz=None), label
             except: continue
+            
         clean = _strip_tz(raw)
         for fmt in fmts:
             try:
-                dt = datetime.strptime(clean, fmt)
-                if dt.year == 1900: dt = dt.replace(year=CURRENT_YEAR)
-                return dt
+                if "%Y" not in fmt and "%y" not in fmt:
+                    dt = datetime.strptime(f"{CURRENT_YEAR} {clean}", f"%Y {fmt}")
+                else:
+                    dt = datetime.strptime(clean, fmt)
+                return dt, label
             except ValueError: continue
-    return None
+    return None, None
 
 def detect_activity(line: str) -> List[str]:
     tags = []
@@ -82,30 +149,12 @@ def classify_gap(seconds: float) -> tuple[str, str]:
     if seconds >= 60: return "MEDIUM", C.CYAN
     return "LOW", C.GREEN
 
-def _human_duration(seconds: float) -> str:
-    seconds = abs(int(seconds))
-    if seconds < 60: return f"{seconds}s"
-    if seconds < 3600:
-        m, s = divmod(seconds, 60)
-        return f"{m}m {s}s"
-    h, rem = divmod(seconds, 3600)
-    return f"{h}h {rem // 60}m"
-
-def _risk_score(gaps: list, threats: list) -> int:
-    if not gaps and not threats: return 0
-    severities = {"CRITICAL": 40, "HIGH": 20, "MEDIUM": 8, "LOW": 2, "REVERSED": 50}
-    raw_gaps = sum(severities.get(g["severity"], 0) for g in gaps)
-    raw_threats = len(threats) * 15
-    return min(raw_gaps + raw_threats, 100)
-
-def _bar(value: int, max_val: int, width: int = 30, char: str = "█") -> str:
-    filled = int(round(value / max_val * width)) if max_val else 0
-    return char * filled + C.DIM + "░" * (width - filled) + C.RESET
-
 # ── Core Analysis Engine ─────────────────────────────────────────────────────
 def scan_log(filepath: str, threshold_seconds: float):
+    start_time = time.time()
     gaps, total_lines, parsed_lines, skipped_lines = [], 0, 0, 0
     prev_ts, prev_line_no, first_ts, last_ts = None, 0, None, None
+    log_type_counts = {}
     ip_stats = {} 
 
     try:
@@ -113,13 +162,14 @@ def scan_log(filepath: str, threshold_seconds: float):
             for line_no, line in enumerate(fh, start=1):
                 total_lines += 1
                 line_content = line.rstrip("\n")
-                ts = parse_timestamp(line_content)
+                ts, ltype = parse_timestamp(line_content)
 
                 if ts is None:
                     skipped_lines += 1
                     continue
 
                 parsed_lines += 1
+                log_type_counts[ltype] = log_type_counts.get(ltype, 0) + 1
                 if first_ts is None: first_ts = ts
                 last_ts = ts
 
@@ -167,10 +217,20 @@ def scan_log(filepath: str, threshold_seconds: float):
                 "last_active": data["last_seen"].isoformat()
             })
 
+    processing_time = time.time() - start_time
+    detected_log_type = max(log_type_counts, key=log_type_counts.get) if log_type_counts else "Unknown"
+
     return {
         "gaps": gaps,
         "threats": threats,
+        "system_info": get_system_metadata(),
+        "file_info": get_file_metadata(filepath),
+        "performance": {
+            "processing_time_sec": round(processing_time, 4),
+            "lines_per_sec": round(total_lines / processing_time, 2) if processing_time > 0 else 0
+        },
         "stats": {
+            "log_type": detected_log_type,
             "total_lines": total_lines,
             "parsed_lines": parsed_lines,
             "skipped_lines": skipped_lines,
@@ -180,47 +240,40 @@ def scan_log(filepath: str, threshold_seconds: float):
         }
     }
 
-# ── Concised Terminal Reporter ────────────────────────────────────────────────
+# ── Reporting Functions ──────────────────────────────────────────────────────
 def report_terminal(result: dict, filepath: str, threshold: float):
     s = result["stats"]
-    gaps = result["gaps"]
-    threats = result["threats"]
-    risk = _risk_score(gaps, threats)
+    f = result["file_info"]
+    p = result["performance"]
+    risk = _risk_score(result["gaps"], result["threats"])
     risk_col = C.RED if risk >= 60 else (C.YELLOW if risk >= 30 else C.GREEN)
     
-    total_sec = s["log_span_sec"]
-    density = (s["parsed_lines"] / (total_sec / 60)) if total_sec > 0 else 0
-    
     print(f"\n{C.BOLD}{'─'*75}{C.RESET}")
-    print(f"{C.BOLD}  🛡️  EVIDENCE PROTECTOR – High-Level Forensic Summary{C.RESET}")
+    print(f"{C.BOLD}  🛡️  EVIDENCE PROTECTOR v2.5 – Advanced Forensic Report{C.RESET}")
     print(f"{'─'*75}")
-    print(f"  Target File : {C.CYAN}{filepath}{C.RESET}")
-    print(f"  Log Span    : {_human_duration(total_sec)}")
-    print(f"  Integrity   : {s['parsed_lines']:,} parsed  |  {C.GREY}{s['skipped_lines']:,} skipped{C.RESET}")
-    print(f"  Density     : {density:.2f} events/min")
-    print()
-
-    print(f"  Risk Score  : {risk_col}{C.BOLD}{risk:>3}/100{C.RESET}  "
+    print(f"  Target File : {C.CYAN}{f['filename']}{C.RESET} ({s['log_type']})")
+    print(f"  System      : {result['system_info']['hostname']} ({result['system_info']['os_type']})")
+    print(f"  Performance : {p['processing_time_sec']}s  |  {p['lines_per_sec']:,} lines/sec")
+    print(f"  Log Span    : {_human_duration(s['log_span_sec'])}")
+    
+    print(f"\n  Risk Score  : {risk_col}{C.BOLD}{risk:>3}/100{C.RESET}  "
           f"{risk_col}{_bar(risk, 100)}{C.RESET}")
     print(f"{'─'*75}")
 
     print(f"\n  {C.BOLD}[🚨 ANOMALY SUMMARY]{C.RESET}")
-    print(f"    Timeline Gaps : {C.YELLOW if gaps else C.GREEN}{len(gaps)}{C.RESET}")
-    print(f"    Threat Actors : {C.RED if threats else C.GREEN}{len(threats)}{C.RESET}")
+    print(f"    Timeline Gaps : {C.YELLOW if result['gaps'] else C.GREEN}{len(result['gaps'])}{C.RESET}")
+    print(f"    Threat Actors : {C.RED if result['threats'] else C.GREEN}{len(result['threats'])}{C.RESET}")
     
-    print(f"\n  {C.CYAN}Notice:{C.RESET} Detailed tables and anomaly lists have been exported to:")
-    print(f"  - {C.BOLD}report.json{C.RESET} (Updated state)")
-    print(f"  - {C.BOLD}reportN.csv{C.RESET} (Historical evidence)")
-    print(f"  - {C.BOLD}forensic_report_TIMESTAMP.html{C.RESET} (Visual evidence)")
+    print(f"\n  {C.CYAN}Notice:{C.RESET} Detailed evidence has been exported to:")
+    print(f"  - {C.BOLD}report.json{C.RESET} (Full metadata & analysis)")
+    print(f"  - {C.BOLD}reportN.csv{C.RESET} (Historical CSV data)")
+    print(f"  - {C.BOLD}forensic_report_TIMESTAMP.html{C.RESET} (Full HTML evidence)")
     print(f"{'─'*75}\n")
 
-# ── CSV Export (Incrementing Filename) ──────────────────────────────────────
 def report_csv(result: dict):
     i = 1
-    while os.path.exists(f"report{i}.csv"):
-        i += 1
+    while os.path.exists(f"report{i}.csv"): i += 1
     file_path = f"report{i}.csv"
-    
     fields = ["type", "gap_start", "gap_end", "duration_sec", "duration_human", "severity", "start_line", "end_line"]
     with open(file_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
@@ -228,7 +281,6 @@ def report_csv(result: dict):
         writer.writerows(result["gaps"])
     print(f"[*] Detailed CSV generated → {file_path}")
 
-# ── JSON Export (Updated Everytime) ──────────────────────────────────────────
 def report_json(result: dict, output_path: str = "report.json"):
     clean_result = result.copy()
     if clean_result["stats"]["first_ts"]: clean_result["stats"]["first_ts"] = clean_result["stats"]["first_ts"].isoformat()
@@ -237,10 +289,12 @@ def report_json(result: dict, output_path: str = "report.json"):
         json.dump(clean_result, fh, indent=2)
     print(f"[*] JSON state updated → {output_path}")
 
-# ── HTML Export (Detailed Visual Report) ─────────────────────────────────────
 def report_html(result: dict, filepath: str):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_file = f"forensic_report_{timestamp}.html"
+    sys = result["system_info"]
+    perf = result["performance"]
+    stats = result["stats"]
     risk = _risk_score(result["gaps"], result["threats"])
     risk_color = "#ef4444" if risk >= 60 else ("#f59e0b" if risk >= 30 else "#10b981")
     
@@ -250,61 +304,66 @@ def report_html(result: dict, filepath: str):
     <head>
         <meta charset="UTF-8">
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; color: #1f2937; padding: 40px; line-height: 1.5; }}
-            .card {{ background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb; }}
-            h1, h2 {{ color: #111827; margin-top: 0; }}
-            .risk-meter {{ height: 24px; background: #e5e7eb; border-radius: 12px; overflow: hidden; margin: 15px 0; }}
+            body {{ font-family: 'Segoe UI', sans-serif; background: #f3f4f6; color: #1f2937; padding: 40px; }}
+            .card {{ background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; }}
+            h1, h2 {{ color: #111827; margin: 0 0 10px 0; }}
+            .grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }}
+            .risk-meter {{ height: 24px; background: #e5e7eb; border-radius: 12px; overflow: hidden; margin: 10px 0; }}
             .risk-fill {{ height: 100%; background: {risk_color}; width: {risk}% }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; border-radius: 8px; overflow: hidden; }}
-            th, td {{ text-align: left; padding: 14px; border-bottom: 1px solid #f3f4f6; }}
-            th {{ background: #f9fafb; font-weight: 600; text-transform: uppercase; font-size: 12px; color: #6b7280; letter-spacing: 0.05em; }}
-            tr:hover {{ background: #f9fafb; }}
-            .tag {{ padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            th, td {{ text-align: left; padding: 12px; border-bottom: 1px solid #f3f4f6; }}
+            th {{ background: #f9fafb; font-size: 12px; color: #6b7280; }}
+            .tag {{ padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }}
             .tag-red {{ background: #fee2e2; color: #991b1b; }}
             .tag-blue {{ background: #dbeafe; color: #1e40af; }}
-            .tag-yellow {{ background: #fef3c7; color: #92400e; }}
         </style>
-        <title>Detailed Forensic Report - {filepath}</title>
+        <title>Forensic Report - {stats['log_type']}</title>
     </head>
     <body>
         <div class="card">
-            <h1>🛡️ Evidence Protector Detailed Analysis</h1>
-            <p style="margin: 0; color: #6b7280;">Forensic audit for: <strong>{filepath}</strong></p>
-            <div style="margin-top: 20px;">
-                <strong>System Risk Score: {risk}/100</strong>
-                <div class="risk-meter"><div class="risk-fill"></div></div>
+            <h1>🛡️ Evidence Protector v2.5</h1>
+            <p>Risk Score: <strong>{risk}/100</strong></p>
+            <div class="risk-meter"><div class="risk-fill"></div></div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>💻 System Environment</h2>
+                <p><strong>Host:</strong> {sys['hostname']}</p>
+                <p><strong>OS:</strong> {sys['os_type']} ({sys['os_release']})</p>
+                <p><strong>Python:</strong> {sys['python_version']}</p>
+            </div>
+            <div class="card">
+                <h2>📈 Process Metadata</h2>
+                <p><strong>File Type:</strong> {stats['log_type']}</p>
+                <p><strong>Time Taken:</strong> {perf['processing_time_sec']}s</p>
+                <p><strong>Throughput:</strong> {perf['lines_per_sec']} lines/sec</p>
             </div>
         </div>
         
         <div class="card">
-            <h2>⏳ Detected Timeline Anomalies</h2>
-            <p>Full list of gaps and reversals detected during the scan.</p>
+            <h2>⏳ Timeline Anomalies ({len(result['gaps'])})</h2>
             <table>
-                <thead><tr><th>#</th><th>Type</th><th>Severity</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
+                <thead><tr><th>Type</th><th>Severity</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
                 <tbody>
-                    {"".join([f"<tr><td>{i}</td><td><span class='tag tag-red'>{g['type']}</span></td><td>{g['severity']}</td><td>{g['duration_human']}</td><td>{g['gap_start'][:19]} -> {g['gap_end'][:19]}</td><td>{g['start_line']} - {g['end_line']}</td></tr>" for i, g in enumerate(result['gaps'], 1)])}
+                    {"".join([f"<tr><td><span class='tag tag-red'>{g['type']}</span></td><td>{g['severity']}</td><td>{g['duration_human']}</td><td>{g['gap_start'][:19]} -> {g['gap_end'][:19]}</td><td>{g['start_line']} - {g['end_line']}</td></tr>" for g in result['gaps']])}
                 </tbody>
             </table>
         </div>
 
         <div class="card">
-            <h2>💀 Threat Intelligence (IP Patterns)</h2>
-            <p>Entities showing suspicious behavioral patterns across the timeline.</p>
+            <h2>💀 Behavioral Intelligence</h2>
             <table>
-                <thead><tr><th>IP Address</th><th>Hits</th><th>Span</th><th>Risk Indicators</th></tr></thead>
+                <thead><tr><th>IP Address</th><th>Hits</th><th>Span</th><th>Indicators</th></tr></thead>
                 <tbody>
                     {"".join([f"<tr><td><strong>{t['ip']}</strong></td><td>{t['hits']}</td><td>{t['span_human']}</td><td>{' '.join([f'<span class="tag tag-blue">{tag}</span>' for tag in t['risk_tags']])}</td></tr>" for t in result['threats']])}
                 </tbody>
             </table>
         </div>
-        <footer style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 40px;">
-            Generated by Evidence Protector Engine v2.1
-        </footer>
     </body>
     </html>
     """
-    with open(out_file, "w") as f:
-        f.write(html)
+    with open(out_file, "w") as f: f.write(html)
     print(f"[*] Visual HTML report generated → {out_file}")
 
 def main():
@@ -312,28 +371,19 @@ def main():
     p.add_argument("logfile", help="Path to log file")
     p.add_argument("--threshold", "-t", type=float, default=300.0)
     p.add_argument("--format", choices=["all", "terminal", "json", "csv", "html"], default="all")
-    p.add_argument("--out", "-o", help="Specific JSON output path (defaults to report.json)")
+    p.add_argument("--out", "-o", help="Specific JSON path")
     args = p.parse_args()
 
-    if not os.path.isfile(args.logfile): sys.exit(1)
+    if not os.path.isfile(args.logfile): 
+        print(f"Error: {args.logfile} is not a valid file.")
+        sys.exit(1)
+        
     res = scan_log(args.logfile, args.threshold)
     
-    # Run reports based on the requested format
-    # In 'all' mode (default), we generate terminal summary, update report.json,
-    # increment reportN.csv, and generate a new detailed HTML.
-    
-    if args.format in ("all", "terminal"):
-        report_terminal(res, args.logfile, args.threshold)
-    
-    if args.format in ("all", "csv"):
-        report_csv(res)
-        
-    if args.format in ("all", "html"):
-        report_html(res, args.logfile)
-        
-    if args.format in ("all", "json"):
-        out = args.out if args.out else "report.json"
-        report_json(res, out)
+    if args.format in ("all", "terminal"): report_terminal(res, args.logfile, args.threshold)
+    if args.format in ("all", "csv"): report_csv(res)
+    if args.format in ("all", "html"): report_html(res, args.logfile)
+    if args.format in ("all", "json"): report_json(res, args.out if args.out else "report.json")
 
 if __name__ == "__main__":
     main()
