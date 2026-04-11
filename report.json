@@ -34416,16 +34416,16 @@
     }
   ],
   "system_info": {
-    "os": "Linux",
-    "ver": "6.18.12+kali-amd64",
-    "arch": "x86_64",
-    "host": "kali",
-    "cpu": "",
-    "ts": "2026-04-11T14:13:24.970234"
+    "os": "Windows",
+    "ver": "11",
+    "arch": "AMD64",
+    "host": "vaibhav",
+    "cpu": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "ts": "2026-04-11T14:34:55.545608"
   },
   "performance": {
-    "time": 0.2197,
-    "lps": 45519.21
+    "time": 0.3555,
+    "lps": 28127.34
   },
   "stats": {
     "log_type": "ISO-8601",

@@ -1,0 +1,48 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg: #07111f;
+  --panel: rgba(10, 18, 31, 0.82);
+  --panel-strong: rgba(12, 23, 38, 0.95);
+  --border: rgba(148, 163, 184, 0.14);
+  --text: #e5eefc;
+  --muted: #8aa0bd;
+  --accent: #38bdf8;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(56, 189, 248, 0.18),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(15, 118, 110, 0.16),
+      transparent 24%
+    ),
+    linear-gradient(180deg, #07111f 0%, #08131f 42%, #050b14 100%);
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.font-display {
+  font-family: "Space Grotesk", "Manrope", system-ui, sans-serif;
+}
