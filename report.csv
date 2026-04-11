@@ -1,3 +1,0 @@
-gap_start,gap_end,duration_sec,duration_human,severity,start_line,end_line
-2024-03-10T08:04:30,2024-03-10T08:49:30,2700.0,45m 0s,HIGH,7,8
-2024-03-10T08:53:20,2024-03-10T10:53:20,7200.0,2h 0m,CRITICAL,14,15
