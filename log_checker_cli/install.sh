@@ -3,7 +3,7 @@
 echo "Installing Logs Checker (check-log)..."
 
 # 1. Install the package locally for the user
-pipx install .
+pipx install --force .
 
 # 2. Automatically detect the shell and add to PATH if missing
 SHELL_CONFIG=""

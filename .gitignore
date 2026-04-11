@@ -2,6 +2,7 @@
 venv
 *.json
 *.csv
+log_checker_cli/build
 log_checker_cli/src/check_log/__pycache__
 log_checker_cli/src/check_log.egg-info
 log_checker_cli/*.json
