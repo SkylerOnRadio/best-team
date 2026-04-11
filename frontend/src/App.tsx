@@ -1,4 +1,10 @@
-import { ChangeEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { ForensicReport, GapEntry, ThreatActor } from "./types";
 
 const API_BASE =
@@ -47,6 +53,138 @@ function formatDuration(seconds?: number) {
   const hours = Math.floor(absolute / 3600);
   const remainingMinutes = Math.floor((absolute % 3600) / 60);
   return `${hours}h ${remainingMinutes}m`;
+}
+
+type ActivityBucket = {
+  timeLabel: string;
+  count: number;
+};
+
+type BubbleGroup = "Access" | "Integrity" | "Data" | "Availability" | "Recon";
+
+type BubblePoint = {
+  id: string;
+  label: string;
+  group: BubbleGroup;
+  xValue: number;
+  yValue: number;
+  sizeValue: number;
+  hits: number;
+  failures: number;
+  tags: string[];
+};
+
+function formatTimeLabel(value: Date, includeDate: boolean) {
+  return includeDate
+    ? value.toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : value.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function buildActivityTimeline(report?: ForensicReport): ActivityBucket[] {
+  if (!report) return [];
+
+  const timestamps: Date[] = [];
+  for (const gap of report.gaps ?? []) {
+    const start = new Date(gap.gap_start);
+    const end = new Date(gap.gap_end);
+    if (!Number.isNaN(start.getTime())) timestamps.push(start);
+    if (!Number.isNaN(end.getTime())) timestamps.push(end);
+  }
+
+  for (const threat of report.threats ?? []) {
+    const active = new Date(threat.last_active);
+    if (!Number.isNaN(active.getTime())) timestamps.push(active);
+  }
+
+  if (timestamps.length === 0) return [];
+
+  timestamps.sort((left, right) => left.getTime() - right.getTime());
+  const minTime = timestamps[0].getTime();
+  const maxTime = timestamps[timestamps.length - 1].getTime();
+  const bucketCount = 8;
+  const spanMs = Math.max(maxTime - minTime, 1);
+  const bucketSize = spanMs / bucketCount;
+  const includeDate = spanMs >= 24 * 60 * 60 * 1000;
+
+  const buckets = Array.from({ length: bucketCount }, (_, index) => {
+    const bucketStart = new Date(minTime + bucketSize * index);
+    return {
+      timeLabel: formatTimeLabel(bucketStart, includeDate),
+      count: 0,
+    };
+  });
+
+  for (const timestamp of timestamps) {
+    const index = Math.min(
+      bucketCount - 1,
+      Math.floor((timestamp.getTime() - minTime) / bucketSize),
+    );
+    buckets[index].count += 1;
+  }
+
+  return buckets;
+}
+
+function isUploadedCache(report?: ForensicReport | null) {
+  if (!report) return false;
+  const source = report.analysis_source ?? report.file_info?.path ?? "";
+  const fileName = report.file_info?.filename ?? "";
+  return source.includes("forensic_upload_") || fileName.startsWith("forensic_upload_");
+}
+
+const bubblePalette: Record<BubbleGroup, string> = {
+  Access: "#22d3ee",
+  Integrity: "#f97316",
+  Data: "#a3e635",
+  Availability: "#f43f5e",
+  Recon: "#c084fc",
+};
+
+function resolveBubbleGroup(tags: string[]): BubbleGroup {
+  if (
+    tags.includes("PRIV_ESCALATION") ||
+    tags.includes("BRUTE_FORCE_TARGET") ||
+    tags.includes("FAILED_LOGIN")
+  ) {
+    return "Access";
+  }
+  if (tags.includes("LOG_TAMPER_ATTEMPT") || tags.includes("UNUSUAL_FILE_CHANGE")) {
+    return "Integrity";
+  }
+  if (
+    tags.includes("SENSITIVE_FILE_ACCESS") ||
+    tags.includes("OBFUSCATED_PAYLOAD")
+  ) {
+    return "Data";
+  }
+  if (tags.includes("SERVICE_INSTABILITY")) {
+    return "Availability";
+  }
+  return "Recon";
+}
+
+function buildBubblePoints(report?: ForensicReport): BubblePoint[] {
+  if (!report) return [];
+  return (report.threats ?? []).map((threat) => {
+    const failures = threat.failed_attempts ?? 0;
+    const tags = threat.risk_tags ?? [];
+    return {
+      id: threat.ip,
+      label: threat.ip,
+      group: resolveBubbleGroup(tags),
+      xValue: threat.hits + failures * 2,
+      yValue: tags.length * 12 + (failures > 0 ? Math.min(failures, 30) : 0),
+      sizeValue: Math.max(6, Math.sqrt(Math.max(threat.hits, 1)) * 2.4),
+      hits: threat.hits,
+      failures,
+      tags,
+    };
+  });
 }
 
 function calculateRisk(report?: ForensicReport) {
@@ -228,6 +366,347 @@ function RiskMeter({ score }: { score: number }) {
   );
 }
 
+function ActivityTimelineChart({ buckets }: { buckets: ActivityBucket[] }) {
+  if (buckets.length === 0) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 text-sm text-slate-400">
+        No timestamped activity was detected for plotting.
+      </div>
+    );
+  }
+
+  const chartWidth = 780;
+  const chartHeight = 260;
+  const leftPad = 54;
+  const rightPad = 24;
+  const topPad = 20;
+  const bottomPad = 52;
+  const innerWidth = chartWidth - leftPad - rightPad;
+  const innerHeight = chartHeight - topPad - bottomPad;
+  const maxCount = Math.max(...buckets.map((entry) => entry.count), 1);
+
+  const points = buckets
+    .map((entry, index) => {
+      const x =
+        leftPad +
+        (index / Math.max(buckets.length - 1, 1)) *
+          Math.max(innerWidth, 1);
+      const y =
+        topPad + innerHeight - (entry.count / maxCount) * Math.max(innerHeight, 1);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+    const y = topPad + innerHeight - ratio * innerHeight;
+    const value = Math.round(ratio * maxCount);
+    return { y, value };
+  });
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+        X axis: time | Y axis: number of activities
+      </div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          className="min-w-[680px] w-full"
+          role="img"
+          aria-label="Activity timeline graph"
+        >
+          {yTicks.map((tick) => (
+            <g key={`tick-${tick.y}`}>
+              <line
+                x1={leftPad}
+                y1={tick.y}
+                x2={chartWidth - rightPad}
+                y2={tick.y}
+                stroke="rgba(148, 163, 184, 0.25)"
+                strokeDasharray="4 4"
+              />
+              <text
+                x={leftPad - 10}
+                y={tick.y + 4}
+                textAnchor="end"
+                fontSize="11"
+                fill="rgba(203, 213, 225, 0.9)"
+              >
+                {tick.value}
+              </text>
+            </g>
+          ))}
+
+          <line
+            x1={leftPad}
+            y1={topPad + innerHeight}
+            x2={chartWidth - rightPad}
+            y2={topPad + innerHeight}
+            stroke="rgba(148, 163, 184, 0.45)"
+          />
+
+          <line
+            x1={leftPad}
+            y1={topPad}
+            x2={leftPad}
+            y2={topPad + innerHeight}
+            stroke="rgba(148, 163, 184, 0.45)"
+          />
+
+          <polyline
+            points={points}
+            fill="none"
+            stroke="rgba(34, 211, 238, 0.95)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {buckets.map((entry, index) => {
+            const x =
+              leftPad +
+              (index / Math.max(buckets.length - 1, 1)) *
+                Math.max(innerWidth, 1);
+            const y =
+              topPad +
+              innerHeight -
+              (entry.count / maxCount) * Math.max(innerHeight, 1);
+            return (
+              <g key={`${entry.timeLabel}-${index}`}>
+                <circle cx={x} cy={y} r="4" fill="rgba(34, 211, 238, 1)" />
+                <text
+                  x={x}
+                  y={chartHeight - 16}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="rgba(203, 213, 225, 0.92)"
+                >
+                  {entry.timeLabel}
+                </text>
+              </g>
+            );
+          })}
+
+          <text
+            x={leftPad + innerWidth / 2}
+            y={chartHeight - 2}
+            textAnchor="middle"
+            fontSize="11"
+            fill="rgba(148, 163, 184, 0.95)"
+          >
+            Time
+          </text>
+          <text
+            x={16}
+            y={topPad + innerHeight / 2}
+            textAnchor="middle"
+            fontSize="11"
+            fill="rgba(148, 163, 184, 0.95)"
+            transform={`rotate(-90 16 ${topPad + innerHeight / 2})`}
+          >
+            Number of Activities
+          </text>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function BubblePlot({ points }: { points: BubblePoint[] }) {
+  const [activeGroup, setActiveGroup] = useState<BubbleGroup | "All">("All");
+  const [activePointId, setActivePointId] = useState<string | null>(null);
+
+  if (points.length === 0) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 text-sm text-slate-400">
+        No threat-actor data available for the bubble plot yet.
+      </div>
+    );
+  }
+
+  const width = 860;
+  const height = 420;
+  const leftPad = 72;
+  const rightPad = 176;
+  const topPad = 24;
+  const bottomPad = 56;
+  const innerWidth = width - leftPad - rightPad;
+  const innerHeight = height - topPad - bottomPad;
+
+  const xMax = Math.max(...points.map((point) => point.xValue), 1);
+  const yMax = Math.max(...points.map((point) => point.yValue), 1);
+
+  const plotted = points.map((point) => {
+    const cx = leftPad + (point.xValue / xMax) * innerWidth;
+    const cy = topPad + innerHeight - (point.yValue / yMax) * innerHeight;
+    return { ...point, cx, cy };
+  });
+
+  const activePoint = plotted.find((point) => point.id === activePointId) ?? null;
+  const groups = Object.keys(bubblePalette) as BubbleGroup[];
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+        X axis: activity pressure | Y axis: threat complexity | Bubble size: actor volume
+      </div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="min-w-[760px] w-full"
+          role="img"
+          aria-label="Threat bubble plot"
+        >
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+            const y = topPad + innerHeight - ratio * innerHeight;
+            const label = Math.round(yMax * ratio);
+            return (
+              <g key={`y-${ratio}`}>
+                <line
+                  x1={leftPad}
+                  y1={y}
+                  x2={leftPad + innerWidth}
+                  y2={y}
+                  stroke="rgba(148,163,184,0.22)"
+                  strokeDasharray="3 5"
+                />
+                <text
+                  x={leftPad - 10}
+                  y={y + 4}
+                  textAnchor="end"
+                  fontSize="11"
+                  fill="rgba(203,213,225,0.9)"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+            const x = leftPad + ratio * innerWidth;
+            const label = Math.round(xMax * ratio);
+            return (
+              <g key={`x-${ratio}`}>
+                <line
+                  x1={x}
+                  y1={topPad}
+                  x2={x}
+                  y2={topPad + innerHeight}
+                  stroke="rgba(148,163,184,0.14)"
+                />
+                <text
+                  x={x}
+                  y={height - 20}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fill="rgba(203,213,225,0.9)"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+
+          <line
+            x1={leftPad}
+            y1={topPad + innerHeight}
+            x2={leftPad + innerWidth}
+            y2={topPad + innerHeight}
+            stroke="rgba(148,163,184,0.5)"
+          />
+          <line
+            x1={leftPad}
+            y1={topPad}
+            x2={leftPad}
+            y2={topPad + innerHeight}
+            stroke="rgba(148,163,184,0.5)"
+          />
+
+          {plotted.map((point) => {
+            const isDimmed =
+              activeGroup !== "All" && point.group !== activeGroup;
+            const isActive = point.id === activePointId;
+            return (
+              <g key={point.id}>
+                <circle
+                  cx={point.cx}
+                  cy={point.cy}
+                  r={point.sizeValue}
+                  fill={bubblePalette[point.group]}
+                  fillOpacity={isDimmed ? 0.16 : 0.36}
+                  stroke={bubblePalette[point.group]}
+                  strokeWidth={isActive ? 2.8 : 1.2}
+                  className="transition-all"
+                  onMouseEnter={() => setActivePointId(point.id)}
+                  onMouseLeave={() => setActivePointId(null)}
+                />
+              </g>
+            );
+          })}
+
+          <text
+            x={leftPad + innerWidth / 2}
+            y={height - 2}
+            textAnchor="middle"
+            fontSize="12"
+            fill="rgba(148,163,184,0.95)"
+          >
+            Activity pressure score
+          </text>
+
+          <text
+            x={24}
+            y={topPad + innerHeight / 2}
+            textAnchor="middle"
+            fontSize="12"
+            fill="rgba(148,163,184,0.95)"
+            transform={`rotate(-90 24 ${topPad + innerHeight / 2})`}
+          >
+            Threat complexity score
+          </text>
+
+          <text
+            x={leftPad + innerWidth + 18}
+            y={topPad + 12}
+            fontSize="11"
+            fill="rgba(148,163,184,0.95)"
+          >
+            Groups
+          </text>
+          {groups.map((group, index) => {
+            const y = topPad + 34 + index * 24;
+            return (
+              <g
+                key={group}
+                onMouseEnter={() => setActiveGroup(group)}
+                onMouseLeave={() => setActiveGroup("All")}
+              >
+                <circle cx={leftPad + innerWidth + 18} cy={y - 5} r="6" fill={bubblePalette[group]} />
+                <text
+                  x={leftPad + innerWidth + 30}
+                  y={y - 2}
+                  fontSize="12"
+                  fill={activeGroup === group ? "#ffffff" : "rgba(203,213,225,0.9)"}
+                >
+                  {group}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {activePoint ? (
+        <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+          <span className="font-semibold text-white">{activePoint.label}</span>{" "}
+          | Hits: {formatNumber(activePoint.hits)} | Failed attempts: {formatNumber(activePoint.failures)} | Tags: {activePoint.tags.slice(0, 4).join(", ") || "None"}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function DetailsTable({
   headers,
   rows,
@@ -387,6 +866,10 @@ function App() {
       })
       .then((data) => {
         if (!active || !data) return;
+        if (isUploadedCache(data)) {
+          setLoadedFromCache(false);
+          return;
+        }
         setReport(data);
         setLoadedFromCache(true);
       })
@@ -399,6 +882,12 @@ function App() {
       active = false;
     };
   }, []);
+
+  const activityTimeline = buildActivityTimeline(report ?? undefined);
+  const bubblePoints = useMemo(
+    () => buildBubblePoints(report ?? undefined),
+    [report],
+  );
 
   const riskScore = calculateRisk(report ?? undefined);
   const gapCount = report?.gaps?.length ?? 0;
@@ -671,6 +1160,30 @@ function App() {
                   </div>
                 </div>
               </div>
+            </SectionShell>
+
+            <SectionShell
+              title="Activity timeline"
+              subtitle="Time is plotted on the X axis and the number of suspicious activities is plotted on the Y axis."
+              badge={
+                <Badge className="border-white/10 bg-white/5 text-slate-200">
+                  {activityTimeline.length} time buckets
+                </Badge>
+              }
+            >
+              <ActivityTimelineChart buckets={activityTimeline} />
+            </SectionShell>
+
+            <SectionShell
+              title="Threat bubble map"
+              subtitle="A creative bubble plot where each threat actor is placed by behavior intensity and complexity, with bubble size indicating actor volume."
+              badge={
+                <Badge className="border-white/10 bg-white/5 text-slate-200">
+                  {bubblePoints.length} actors plotted
+                </Badge>
+              }
+            >
+              <BubblePlot points={bubblePoints} />
             </SectionShell>
 
             <SectionShell

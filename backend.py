@@ -137,7 +137,6 @@ def api_analyze():
     try:
         uploaded_file.save(temp_path)
         report_data = analyze_log_file(temp_path, threshold_seconds)
-        _write_cache(report_data)
         return jsonify(_safe_json(report_data))
     except Exception as exc:
         logger.exception("Upload analysis failed")
