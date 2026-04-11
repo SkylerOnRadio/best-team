@@ -32445,8 +32445,8 @@
     {
       "ip": "192.168.1.1",
       "risk_tags": [
-        "UNUSUAL",
-        "PING"
+        "PING",
+        "UNUSUAL"
       ],
       "hits": 424,
       "span_human": "22h 1m",
@@ -32455,8 +32455,8 @@
     {
       "ip": "1.1.1.1",
       "risk_tags": [
-        "UNUSUAL",
-        "PING"
+        "PING",
+        "UNUSUAL"
       ],
       "hits": 397,
       "span_human": "21h 42m",
@@ -32465,8 +32465,8 @@
     {
       "ip": "8.8.8.8",
       "risk_tags": [
-        "UNUSUAL",
-        "PING"
+        "PING",
+        "UNUSUAL"
       ],
       "hits": 431,
       "span_human": "22h 1m",
@@ -33942,7 +33942,7 @@
     "hostname": "kali",
     "processor": "",
     "python_version": "3.13.12",
-    "scan_timestamp": "2026-04-11T11:58:32.291281"
+    "scan_timestamp": "2026-04-11T12:20:34.052095"
   },
   "file_info": {
     "filename": "sample.log",
@@ -33953,8 +33953,8 @@
     "extension": ".log"
   },
   "performance": {
-    "processing_time_sec": 0.121,
-    "lines_per_sec": 82631.89
+    "processing_time_sec": 0.1158,
+    "lines_per_sec": 86372.4
   },
   "stats": {
     "log_type": "ISO-8601",

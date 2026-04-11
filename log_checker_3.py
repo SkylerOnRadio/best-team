@@ -298,73 +298,153 @@ def report_html(result: dict, filepath: str):
     risk = _risk_score(result["gaps"], result["threats"])
     risk_color = "#ef4444" if risk >= 60 else ("#f59e0b" if risk >= 30 else "#10b981")
     
+    # Sort anomalies into categories for a cleaner UI
+    gap_count = sum(1 for g in result['gaps'] if g['type'] == 'GAP')
+    rev_count = sum(1 for g in result['gaps'] if g['type'] == 'REVERSED')
+    
     html = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body {{ font-family: 'Segoe UI', sans-serif; background: #f3f4f6; color: #1f2937; padding: 40px; }}
-            .card {{ background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; }}
-            h1, h2 {{ color: #111827; margin: 0 0 10px 0; }}
-            .grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }}
-            .risk-meter {{ height: 24px; background: #e5e7eb; border-radius: 12px; overflow: hidden; margin: 10px 0; }}
+            :root {{
+                --primary: #111827;
+                --secondary: #4b5563;
+                --danger: #ef4444;
+                --warning: #f59e0b;
+                --success: #10b981;
+                --bg: #f3f4f6;
+                --card-bg: #ffffff;
+            }}
+            body {{ font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--primary); padding: 20px; line-height: 1.6; }}
+            .container {{ max-width: 1000px; margin: 0 auto; }}
+            .card {{ background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; }}
+            h1, h2, h3 {{ color: var(--primary); margin: 0 0 15px 0; }}
+            .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }}
+            
+            .risk-meter {{ height: 28px; background: #e5e7eb; border-radius: 14px; overflow: hidden; margin: 15px 0; position: relative; }}
             .risk-fill {{ height: 100%; background: {risk_color}; width: {risk}% }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
-            th, td {{ text-align: left; padding: 12px; border-bottom: 1px solid #f3f4f6; }}
-            th {{ background: #f9fafb; font-size: 12px; color: #6b7280; }}
-            .tag {{ padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }}
+            .risk-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }}
+            
+            details {{ background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; }}
+            details[open] {{ padding-bottom: 10px; }}
+            summary {{ padding: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; list-style: none; }}
+            summary::-webkit-details-marker {{ display: none; }}
+            summary:after {{ content: '▶'; margin-left: auto; transition: transform 0.2s; font-size: 12px; }}
+            details[open] summary:after {{ transform: rotate(90deg); }}
+            summary:hover {{ background: #f3f4f6; }}
+            
+            table {{ width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }}
+            th, td {{ text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }}
+            th {{ background: #f3f4f6; color: var(--secondary); font-size: 12px; text-transform: uppercase; }}
+            
+            .tag {{ padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }}
             .tag-red {{ background: #fee2e2; color: #991b1b; }}
             .tag-blue {{ background: #dbeafe; color: #1e40af; }}
+            .tag-yellow {{ background: #fef3c7; color: #92400e; }}
+            
+            .metric {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }}
+            .metric:last-child {{ border: none; }}
+            .label {{ color: var(--secondary); font-size: 14px; }}
+            .value {{ font-weight: 600; }}
         </style>
-        <title>Forensic Report - {stats['log_type']}</title>
+        <title>Forensic Evidence Report</title>
     </head>
     <body>
-        <div class="card">
-            <h1>🛡️ Evidence Protector v2.5</h1>
-            <p>Risk Score: <strong>{risk}/100</strong></p>
-            <div class="risk-meter"><div class="risk-fill"></div></div>
-        </div>
-
-        <div class="grid">
+        <div class="container">
             <div class="card">
-                <h2>💻 System Environment</h2>
-                <p><strong>Host:</strong> {sys['hostname']}</p>
-                <p><strong>OS:</strong> {sys['os_type']} ({sys['os_release']})</p>
-                <p><strong>Python:</strong> {sys['python_version']}</p>
+                <h1>🛡️ Evidence Protector v2.5</h1>
+                <p style="color: var(--secondary);">Integrity Audit: <strong>{os.path.basename(filepath)}</strong></p>
+                <div class="risk-meter">
+                    <div class="risk-fill"></div>
+                    <span class="risk-text">RISK SCORE: {risk}/100</span>
+                </div>
             </div>
-            <div class="card">
-                <h2>📈 Process Metadata</h2>
-                <p><strong>File Type:</strong> {stats['log_type']}</p>
-                <p><strong>Time Taken:</strong> {perf['processing_time_sec']}s</p>
-                <p><strong>Throughput:</strong> {perf['lines_per_sec']} lines/sec</p>
-            </div>
-        </div>
-        
-        <div class="card">
-            <h2>⏳ Timeline Anomalies ({len(result['gaps'])})</h2>
-            <table>
-                <thead><tr><th>Type</th><th>Severity</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
-                <tbody>
-                    {"".join([f"<tr><td><span class='tag tag-red'>{g['type']}</span></td><td>{g['severity']}</td><td>{g['duration_human']}</td><td>{g['gap_start'][:19]} -> {g['gap_end'][:19]}</td><td>{g['start_line']} - {g['end_line']}</td></tr>" for g in result['gaps']])}
-                </tbody>
-            </table>
-        </div>
 
-        <div class="card">
-            <h2>💀 Behavioral Intelligence</h2>
-            <table>
-                <thead><tr><th>IP Address</th><th>Hits</th><th>Span</th><th>Indicators</th></tr></thead>
-                <tbody>
-                    {"".join([f"<tr><td><strong>{t['ip']}</strong></td><td>{t['hits']}</td><td>{t['span_human']}</td><td>{' '.join([f'<span class="tag tag-blue">{tag}</span>' for tag in t['risk_tags']])}</td></tr>" for t in result['threats']])}
-                </tbody>
-            </table>
+            <div class="grid">
+                <div class="card">
+                    <h2>💻 System Context</h2>
+                    <div class="metric"><span class="label">Hostname</span><span class="value">{sys['hostname']}</span></div>
+                    <div class="metric"><span class="label">OS</span><span class="value">{sys['os_type']} ({sys['os_release']})</span></div>
+                    <div class="metric"><span class="label">Architecture</span><span class="value">{sys['architecture']}</span></div>
+                </div>
+                <div class="card">
+                    <h2>📊 Scan Metadata</h2>
+                    <div class="metric"><span class="label">Log Type</span><span class="value">{stats['log_type']}</span></div>
+                    <div class="metric"><span class="label">Processing Time</span><span class="value">{perf['processing_time_sec']}s</span></div>
+                    <div class="metric"><span class="label">Throughput</span><span class="value">{perf['lines_per_sec']:,} L/s</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📁 Category Overview</h2>
+                
+                <details>
+                    <summary>Timeline Gaps ({gap_count})</summary>
+                    <div style="padding: 0 15px;">
+                        {"<p>No gaps detected.</p>" if gap_count == 0 else f"""
+                        <table>
+                            <thead><tr><th>Start</th><th>End</th><th>Duration</th><th>Severity</th></tr></thead>
+                            <tbody>
+                                {"".join([f"<tr><td>{g['gap_start'][:19]}</td><td>{g['gap_end'][:19]}</td><td>{g['duration_human']}</td><td><span class='tag tag-yellow'>{g['severity']}</span></td></tr>" for g in result['gaps'] if g['type'] == 'GAP'])}
+                            </tbody>
+                        </table>
+                        """}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Time Reversals ({rev_count})</summary>
+                    <div style="padding: 0 15px;">
+                        {"<p>No reversals detected.</p>" if rev_count == 0 else f"""
+                        <table>
+                            <thead><tr><th>Current Line</th><th>Previous TS</th><th>Current TS</th></tr></thead>
+                            <tbody>
+                                {"".join([f"<tr><td>{g['end_line']}</td><td>{g['gap_start'][:19]}</td><td>{g['gap_end'][:19]}</td></tr>" for g in result['gaps'] if g['type'] == 'REVERSED'])}
+                            </tbody>
+                        </table>
+                        """}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Threat Actors ({len(result['threats'])})</summary>
+                    <div style="padding: 0 15px;">
+                        {"<p>No threat actors identified.</p>" if not result['threats'] else f"""
+                        <table>
+                            <thead><tr><th>IP Address</th><th>Hits</th><th>Span</th><th>Tags</th></tr></thead>
+                            <tbody>
+                                {"".join([f"<tr><td><strong>{t['ip']}</strong></td><td>{t['hits']}</td><td>{t['span_human']}</td><td>{' '.join([f'<span class="tag tag-blue">{tag}</span>' for tag in t['risk_tags']])}</td></tr>" for t in result['threats']])}
+                            </tbody>
+                        </table>
+                        """}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Show All Raw Anomalies ({len(result['gaps'])})</summary>
+                    <div style="padding: 0 15px;">
+                        <table>
+                            <thead><tr><th>Type</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
+                            <tbody>
+                                {"".join([f"<tr><td><span class='tag tag-red'>{g['type']}</span></td><td>{g['duration_human']}</td><td>{g['gap_start'][:19]} -> {g['gap_end'][:19]}</td><td>{g['start_line']} - {g['end_line']}</td></tr>" for g in result['gaps']])}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+            
+            <footer style="text-align: center; color: var(--secondary); font-size: 12px; margin-top: 20px;">
+                Evidence Protector Engine v2.5 | {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            </footer>
         </div>
     </body>
     </html>
     """
     with open(out_file, "w") as f: f.write(html)
-    print(f"[*] Visual HTML report generated → {out_file}")
+    print(f"[*] Structured HTML report generated → {out_file}")
 
 def main():
     p = argparse.ArgumentParser()
