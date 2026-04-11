@@ -1,12 +1,39 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "check-log"
-version = "1.0.0"
-description = "A security anomaly log generator"
-dependencies = []  # Add 'click' here if you use it later
+version = "2.0.0"
+description = "A security anomaly log generator and forensic analyzer"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "SkylerOnRadio", email = "abhigyadulal@gmail.com" }
+]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: Security",
+]
+# IMPORTANT: Put ALL your pip requirements here (flask, etc.)
+# If someone installs your tool, pipx will automatically install these!
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "flask-socketio>=5.3.0",
+    "eventlet>=0.33.3"
+]
 
 [project.scripts]
 check-log = "check_log.check_log:main"
+
+[project.urls]
+Homepage = "https://github.com/SkylerOnRadio/best-team"
+Issues = "https://github.com/SkylerOnRadio/best-team/issues"
