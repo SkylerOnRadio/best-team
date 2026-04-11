@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ev-gen"
+version = "1.0.0"
+description = "A security anomaly log generator"
+dependencies = []  # Add 'click' here if you use it later
+
+[project.scripts]
+ev-gen = "ev_gen.generator:main"
