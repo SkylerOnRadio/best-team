@@ -1,180 +1,81 @@
 {
-  "gaps": [
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-10T13:26:39.919000",
-      "gap_end": "2026-04-10T14:26:41.919000",
-      "duration_sec": 3602.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 1105,
-      "end_line": 1106
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-10T14:49:40.919000",
-      "gap_end": "2026-04-10T15:49:41.919000",
-      "duration_sec": 3601.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 2016,
-      "end_line": 2017
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-11T08:31:11.919000",
-      "gap_end": "2026-04-11T09:31:13.919000",
-      "duration_sec": 3602.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 42230,
-      "end_line": 42231
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-11T18:42:36.919000",
-      "gap_end": "2026-04-11T19:42:37.919000",
-      "duration_sec": 3601.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 64297,
-      "end_line": 64298
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-11T21:23:06.919000",
-      "gap_end": "2026-04-11T22:23:08.919000",
-      "duration_sec": 3602.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 68324,
-      "end_line": 68325
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-12T00:49:08.919000",
-      "gap_end": "2026-04-12T01:49:09.919000",
-      "duration_sec": 3601.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 74215,
-      "end_line": 74216
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-12T01:54:41.919000",
-      "gap_end": "2026-04-12T02:54:42.919000",
-      "duration_sec": 3601.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 74437,
-      "end_line": 74438
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-12T06:32:50.919000",
-      "gap_end": "2026-04-12T07:32:52.919000",
-      "duration_sec": 3602.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 83173,
-      "end_line": 83174
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-12T10:14:07.919000",
-      "gap_end": "2026-04-12T11:14:09.919000",
-      "duration_sec": 3602.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 89590,
-      "end_line": 89591
-    },
-    {
-      "type": "GAP",
-      "gap_start": "2026-04-12T13:24:00.919000",
-      "gap_end": "2026-04-12T14:24:01.919000",
-      "duration_sec": 3601.0,
-      "duration_human": "1h 0m",
-      "severity": "CRITICAL",
-      "start_line": 94818,
-      "end_line": 94819
-    }
-  ],
-  "threats": [
-    {
-      "ip": "194.26.135.21",
-      "risk_tags": [
-        "PERSISTENT_ACTOR",
-        "BRUTE_FORCE",
-        "SCANNING"
-      ],
-      "hits": 282,
-      "span_human": "51h 4m",
-      "last_active": "2026-04-12T16:05:50"
-    },
-    {
-      "ip": "185.220.101.35",
-      "risk_tags": [
-        "PERSISTENT_ACTOR",
-        "BRUTE_FORCE",
-        "SCANNING"
-      ],
-      "hits": 273,
-      "span_human": "51h 29m",
-      "last_active": "2026-04-12T16:33:16"
-    },
-    {
-      "ip": "45.155.205.233",
-      "risk_tags": [
-        "PERSISTENT_ACTOR",
-        "BRUTE_FORCE",
-        "SCANNING"
-      ],
-      "hits": 291,
-      "span_human": "51h 15m",
-      "last_active": "2026-04-12T16:22:24"
-    },
-    {
-      "ip": "10.0.0.0",
-      "risk_tags": [
-        "SCANNING",
-        "PERSISTENT_ACTOR"
-      ],
-      "hits": 205,
-      "span_human": "49h 51m",
-      "last_active": "2026-04-12T16:30:40"
-    }
-  ],
-  "system_info": {
-    "os_type": "Linux",
-    "os_release": "6.17.0-20-generic",
-    "os_version": "#20~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Mar 19 01:28:37 UTC 2",
-    "architecture": "x86_64",
-    "hostname": "Uwu",
-    "processor": "x86_64",
-    "python_version": "3.12.3",
-    "scan_timestamp": "2026-04-11T12:59:18.589338"
-  },
-  "file_info": {
-    "filename": "huge_evidence.log",
-    "path": "/home/skyler/Coding/best-team/huge_evidence.log",
-    "size_bytes": 7160994,
-    "created_at": "2026-04-11T12:58:51.223076",
-    "modified_at": "2026-04-11T12:58:51.223076",
-    "extension": ".log"
-  },
-  "performance": {
-    "processing_time_sec": 0.8641,
-    "lines_per_sec": 115729.74
-  },
-  "stats": {
-    "log_type": "ISO-8601",
-    "total_lines": 100000,
-    "parsed_lines": 100000,
-    "skipped_lines": 0,
-    "log_span_sec": 185746.0,
-    "first_ts": "2026-04-10T12:58:51.919000",
-    "last_ts": "2026-04-12T16:34:37.919000"
-  }
+	"gaps": [
+		{
+			"type": "GAP",
+			"gap_start": "2016-09-28T04:32:17",
+			"gap_end": "2016-09-28T04:40:53",
+			"duration_sec": 516.0,
+			"duration_human": "8m 36s",
+			"severity": "MEDIUM",
+			"start_line": 936,
+			"end_line": 937
+		},
+		{
+			"type": "GAP",
+			"gap_start": "2016-09-28T04:40:55",
+			"gap_end": "2016-09-29T00:00:44",
+			"duration_sec": 69589.0,
+			"duration_human": "19h 19m",
+			"severity": "CRITICAL",
+			"start_line": 953,
+			"end_line": 954
+		},
+		{
+			"type": "GAP",
+			"gap_start": "2016-09-29T00:03:25",
+			"gap_end": "2016-09-29T02:03:46",
+			"duration_sec": 7221.0,
+			"duration_human": "2h 0m",
+			"severity": "CRITICAL",
+			"start_line": 1103,
+			"end_line": 1104
+		}
+	],
+	"threats": [
+		{
+			"ip": "6.1.1.0",
+			"risk_tags": [],
+			"hits": 229,
+			"span_human": "21h 34m",
+			"last_active": "2016-09-29T02:04:40"
+		},
+		{
+			"ip": "6.1.1.1",
+			"risk_tags": [],
+			"hits": 139,
+			"span_human": "21h 34m",
+			"last_active": "2016-09-29T02:04:39"
+		}
+	],
+	"system_info": {
+		"os_type": "Linux",
+		"os_release": "6.18.12+kali-amd64",
+		"os_version": "#1 SMP PREEMPT_DYNAMIC Kali 6.18.12-1kali1 (2026-02-25)",
+		"architecture": "x86_64",
+		"hostname": "kali",
+		"processor": "",
+		"python_version": "3.13.12",
+		"scan_timestamp": "2026-04-11T12:24:10.393779"
+	},
+	"file_info": {
+		"filename": "Windows_2k.log",
+		"path": "/home/charm/Downloads/best-team/Windows_2k.log",
+		"size_bytes": 283434,
+		"created_at": "2026-04-11T12:23:54.688176",
+		"modified_at": "2026-04-11T12:23:51.251494",
+		"extension": ".log"
+	},
+	"performance": {
+		"processing_time_sec": 0.0267,
+		"lines_per_sec": 74962.54
+	},
+	"stats": {
+		"log_type": "ISO-8601",
+		"total_lines": 2000,
+		"parsed_lines": 2000,
+		"skipped_lines": 0,
+		"log_span_sec": 77650.0,
+		"first_ts": "2016-09-28T04:30:30",
+		"last_ts": "2016-09-29T02:04:40"
+	}
 }
