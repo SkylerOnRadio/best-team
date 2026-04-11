@@ -1,0 +1,134 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            :root {
+                --primary: #111827;
+                --secondary: #4b5563;
+                --danger: #ef4444;
+                --warning: #f59e0b;
+                --success: #10b981;
+                --bg: #f3f4f6;
+                --card-bg: #ffffff;
+            }
+            body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--primary); padding: 20px; line-height: 1.6; }
+            .container { max-width: 1000px; margin: 0 auto; }
+            .card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; }
+            h1, h2, h3 { color: var(--primary); margin: 0 0 15px 0; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+            
+            .risk-meter { height: 28px; background: #e5e7eb; border-radius: 14px; overflow: hidden; margin: 15px 0; position: relative; }
+            .risk-fill { height: 100%; background: #ef4444; width: 100% }
+            .risk-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+            
+            details { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; }
+            details[open] { padding-bottom: 10px; }
+            summary { padding: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; list-style: none; }
+            summary::-webkit-details-marker { display: none; }
+            summary:after { content: '▶'; margin-left: auto; transition: transform 0.2s; font-size: 12px; }
+            details[open] summary:after { transform: rotate(90deg); }
+            summary:hover { background: #f3f4f6; }
+            
+            table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+            th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+            th { background: #f3f4f6; color: var(--secondary); font-size: 12px; text-transform: uppercase; }
+            
+            .tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+            .tag-red { background: #fee2e2; color: #991b1b; }
+            .tag-blue { background: #dbeafe; color: #1e40af; }
+            .tag-yellow { background: #fef3c7; color: #92400e; }
+            
+            .metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
+            .metric:last-child { border: none; }
+            .label { color: var(--secondary); font-size: 14px; }
+            .value { font-weight: 600; }
+        </style>
+        <title>Forensic Evidence Report</title>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <h1>🛡️ Evidence Protector v2.5</h1>
+                <p style="color: var(--secondary);">Integrity Audit: <strong>huge_evidence.log</strong></p>
+                <div class="risk-meter">
+                    <div class="risk-fill"></div>
+                    <span class="risk-text">RISK SCORE: 100/100</span>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2>💻 System Context</h2>
+                    <div class="metric"><span class="label">Hostname</span><span class="value">Uwu</span></div>
+                    <div class="metric"><span class="label">OS</span><span class="value">Linux (6.17.0-20-generic)</span></div>
+                    <div class="metric"><span class="label">Architecture</span><span class="value">x86_64</span></div>
+                </div>
+                <div class="card">
+                    <h2>📊 Scan Metadata</h2>
+                    <div class="metric"><span class="label">Log Type</span><span class="value">ISO-8601</span></div>
+                    <div class="metric"><span class="label">Processing Time</span><span class="value">0.8641s</span></div>
+                    <div class="metric"><span class="label">Throughput</span><span class="value">115,729.74 L/s</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📁 Category Overview</h2>
+                
+                <details>
+                    <summary>Timeline Gaps (10)</summary>
+                    <div style="padding: 0 15px;">
+                        
+                        <table>
+                            <thead><tr><th>Start</th><th>End</th><th>Duration</th><th>Severity</th></tr></thead>
+                            <tbody>
+                                <tr><td>2026-04-10T13:26:39</td><td>2026-04-10T14:26:41</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-10T14:49:40</td><td>2026-04-10T15:49:41</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-11T08:31:11</td><td>2026-04-11T09:31:13</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-11T18:42:36</td><td>2026-04-11T19:42:37</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-11T21:23:06</td><td>2026-04-11T22:23:08</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-12T00:49:08</td><td>2026-04-12T01:49:09</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-12T01:54:41</td><td>2026-04-12T02:54:42</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-12T06:32:50</td><td>2026-04-12T07:32:52</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-12T10:14:07</td><td>2026-04-12T11:14:09</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2026-04-12T13:24:00</td><td>2026-04-12T14:24:01</td><td>1h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr>
+                            </tbody>
+                        </table>
+                        
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Time Reversals (0)</summary>
+                    <div style="padding: 0 15px;">
+                        <p>No reversals detected.</p>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Threat Actors (4)</summary>
+                    <div style="padding: 0 15px;">
+                        
+                        <table>
+                            <thead><tr><th>IP Address</th><th>Hits</th><th>Span</th><th>Tags</th></tr></thead>
+                            <tbody>
+                                <tr><td><strong>194.26.135.21</strong></td><td>282</td><td>51h 4m</td><td><span class="tag tag-blue">PERSISTENT_ACTOR</span> <span class="tag tag-blue">BRUTE_FORCE</span> <span class="tag tag-blue">SCANNING</span></td></tr><tr><td><strong>185.220.101.35</strong></td><td>273</td><td>51h 29m</td><td><span class="tag tag-blue">PERSISTENT_ACTOR</span> <span class="tag tag-blue">BRUTE_FORCE</span> <span class="tag tag-blue">SCANNING</span></td></tr><tr><td><strong>45.155.205.233</strong></td><td>291</td><td>51h 15m</td><td><span class="tag tag-blue">PERSISTENT_ACTOR</span> <span class="tag tag-blue">BRUTE_FORCE</span> <span class="tag tag-blue">SCANNING</span></td></tr><tr><td><strong>10.0.0.0</strong></td><td>205</td><td>49h 51m</td><td><span class="tag tag-blue">SCANNING</span> <span class="tag tag-blue">PERSISTENT_ACTOR</span></td></tr>
+                            </tbody>
+                        </table>
+                        
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Show All Raw Anomalies (10)</summary>
+                    <div style="padding: 0 15px;">
+                        <table>
+                            <thead><tr><th>Type</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
+                            <tbody>
+                                <tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-10T13:26:39 -> 2026-04-10T14:26:41</td><td>1105 - 1106</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-10T14:49:40 -> 2026-04-10T15:49:41</td><td>2016 - 2017</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-11T08:31:11 -> 2026-04-11T09:31:13</td><td>42230 - 42231</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-11T18:42:36 -> 2026-04-11T19:42:37</td><td>64297 - 64298</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-11T21:23:06 -> 2026-04-11T22:23:08</td><td>68324 - 68325</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-12T00:49:08 -> 2026-04-12T01:49:09</td><td>74215 - 74216</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-12T01:54:41 -> 2026-04-12T02:54:42</td><td>74437 - 74438</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-12T06:32:50 -> 2026-04-12T07:32:52</td><td>83173 - 83174</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-12T10:14:07 -> 2026-04-12T11:14:09</td><td>89590 - 89591</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>1h 0m</td><td>2026-04-12T13:24:00 -> 2026-04-12T14:24:01</td><td>94818 - 94819</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+            
+            <footer style="text-align: center; color: var(--secondary); font-size: 12px; margin-top: 20px;">
+                Evidence Protector Engine v2.5 | 2026-04-11 12:59:18
+            </footer>
+        </div>
+    </body>
+    </html>
+    
