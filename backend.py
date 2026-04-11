@@ -11,7 +11,7 @@ from flask_cors import CORS
 
 # --- CONFIGURATION ---
 # Path to your updated log checker script
-CHECKER_SCRIPT_PATH = "./log_checker_2.py" 
+CHECKER_SCRIPT_PATH = "./log_checker_3.py" 
 # The log file to monitor
 TARGET_LOG_FILE = "sample.log"
 # Temporary location for the generated report
