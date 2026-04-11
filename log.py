@@ -125,12 +125,12 @@ CURRENT_YEAR               = datetime.now().year
 
 def resolve_output_dir() -> Dict[str, str]:
     """
-    Resolves and creates the output directories:
-      ~/Documents/Forensic_Reports/csv/
-      ~/Documents/Forensic_Reports/html/
-      ~/Documents/Forensic_Reports/json/
-    Returns a dictionary of the absolute paths.
+    Resolves and creates:
+      ~/Documents/Forensic_Reports/{csv,html,json}/{YYYY-MM-DD}/
     """
+    # 1. Get the current date for folder naming
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    
     documents = os.path.join(os.path.expanduser("~"), "Documents")
     if not os.path.isdir(documents):
         try:
@@ -140,10 +140,11 @@ def resolve_output_dir() -> Dict[str, str]:
 
     root_dir = os.path.join(documents, REPORT_ROOT_DIR)
     
+    # 2. Add the date_str to the end of each path
     dirs = {
-        "csv": os.path.join(root_dir, "csv"),
-        "html": os.path.join(root_dir, "html"),
-        "json": os.path.join(root_dir, "json"),
+        "csv": os.path.join(root_dir, "csv", date_str),
+        "html": os.path.join(root_dir, "html", date_str),
+        "json": os.path.join(root_dir, "json", date_str),
     }
     
     for d in dirs.values():
@@ -151,8 +152,61 @@ def resolve_output_dir() -> Dict[str, str]:
         
     return dirs
 
-
 def make_output_paths(dirs: Dict[str, str]) -> Dict[str, str]:
+    """
+    Saves files as: {n}_{filename}_{timestamp}.ext
+    Increments 'n' based on the highest existing 'n' in the folder.
+    """
+    # 1. Get current timestamp for the filename
+    ts = datetime.now().strftime("%H%M%S")
+    
+    # 2. Find the highest existing 'n' in the directory
+    existing_files = os.listdir(dirs["csv"])
+    highest_n = 0
+    
+    for filename in existing_files:
+        # Regex to find the leading number (e.g., "1" from "1_integrity...")
+        match = re.match(r"^(\d+)_", filename)
+        if match:
+            n_val = int(match.group(1))
+            if n_val > highest_n:
+                highest_n = n_val
+    
+    # 3. New 'n' is the highest found + 1
+    n = highest_n + 1
+
+    # 4. Generate final paths
+    return {
+        "csv_integrity":  os.path.join(dirs["csv"],  f"{n}_integrity_report_{ts}.csv"),
+        "csv_behavioral": os.path.join(dirs["csv"],  f"{n}_threat_actors_{ts}.csv"),
+        "html":           os.path.join(dirs["html"], f"{n}_visual_report_{ts}.html"),
+        "json":           os.path.join(dirs["json"], f"{n}_forensic_data_{ts}.json"),
+    }
+    """
+    Saves files as: {n}_{filename}_{timestamp}.{ext}
+    """
+    # 1. Generate a high-resolution timestamp for the filename
+    ts = datetime.now().strftime("%H%M%S") 
+    
+    n = 1
+    while True:
+        # 2. Updated filename format: n_name_timestamp.ext
+        c1 = os.path.join(dirs["csv"], f"{n}_integrity_report_{ts}.csv")
+        c2 = os.path.join(dirs["csv"], f"{n}_threat_actors_{ts}.csv")
+        h  = os.path.join(dirs["html"], f"{n}_visual_report_{ts}.html")
+        j  = os.path.join(dirs["json"], f"{n}_forensic_data_{ts}.json")
+        
+        # Check if this specific 'n' already exists for this second
+        if not (os.path.exists(c1) or os.path.exists(c2) or os.path.exists(h) or os.path.exists(j)):
+            break
+        n += 1
+
+    return {
+        "csv_integrity":  c1,
+        "csv_behavioral": c2,
+        "html":           h,
+        "json":           j,
+    }
     """
     Generates unified serial-numbered output file paths.
     Finds the highest N in use and returns N+1.
