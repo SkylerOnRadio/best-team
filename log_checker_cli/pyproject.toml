@@ -9,4 +9,4 @@ description = "A security anomaly log generator"
 dependencies = []  # Add 'click' here if you use it later
 
 [project.scripts]
-ev-gen = "check-log.check-log:main"
+check-log = "check_log.check_log:main"
