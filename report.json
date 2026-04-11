@@ -4,8 +4,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T15:16:02",
       "gap_end": "2026-01-05T02:04:59",
-      "duration_human": "10:48:57",
-      "duration_seconds": 38937.0,
+      "duration_sec": 38937.0,
+      "duration_human": "10h 48m",
       "severity": "CRITICAL",
       "start_line": 3,
       "end_line": 4
@@ -14,8 +14,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T02:04:59",
       "gap_end": "2026-01-05T04:06:18",
-      "duration_human": "2:01:19",
-      "duration_seconds": 7279.0,
+      "duration_sec": 7279.0,
+      "duration_human": "2h 1m",
       "severity": "CRITICAL",
       "start_line": 13,
       "end_line": 14
@@ -24,9 +24,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:06:20",
       "gap_end": "2026-01-05T04:12:42",
-      "duration_human": "0:06:22",
-      "duration_seconds": 382.0,
-      "severity": "HIGH",
+      "duration_sec": 382.0,
+      "duration_human": "6m 22s",
+      "severity": "MEDIUM",
       "start_line": 16,
       "end_line": 17
     },
@@ -34,8 +34,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:12:43",
       "gap_end": "2026-01-05T12:12:34",
-      "duration_human": "7:59:51",
-      "duration_seconds": 28791.0,
+      "duration_sec": 28791.0,
+      "duration_human": "7h 59m",
       "severity": "CRITICAL",
       "start_line": 18,
       "end_line": 19
@@ -44,8 +44,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T12:13:20",
       "gap_end": "2026-01-05T14:53:32",
-      "duration_human": "2:40:12",
-      "duration_seconds": 9612.0,
+      "duration_sec": 9612.0,
+      "duration_human": "2h 40m",
       "severity": "CRITICAL",
       "start_line": 42,
       "end_line": 43
@@ -54,8 +54,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:53:36",
       "gap_end": "2026-01-05T20:05:31",
-      "duration_human": "5:11:55",
-      "duration_seconds": 18715.0,
+      "duration_sec": 18715.0,
+      "duration_human": "5h 11m",
       "severity": "CRITICAL",
       "start_line": 62,
       "end_line": 63
@@ -64,8 +64,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T20:05:31",
       "gap_end": "2026-01-06T04:10:22",
-      "duration_human": "8:04:51",
-      "duration_seconds": 29091.0,
+      "duration_sec": 29091.0,
+      "duration_human": "8h 4m",
       "severity": "CRITICAL",
       "start_line": 72,
       "end_line": 73
@@ -74,9 +74,9 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:10:24",
       "gap_end": "2026-01-06T04:16:17",
-      "duration_human": "0:05:53",
-      "duration_seconds": 353.0,
-      "severity": "HIGH",
+      "duration_sec": 353.0,
+      "duration_human": "5m 53s",
+      "severity": "MEDIUM",
       "start_line": 75,
       "end_line": 76
     },
@@ -84,8 +84,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:16:18",
       "gap_end": "2026-01-07T04:03:33",
-      "duration_human": "23:47:15",
-      "duration_seconds": 85635.0,
+      "duration_sec": 85635.0,
+      "duration_human": "23h 47m",
       "severity": "CRITICAL",
       "start_line": 77,
       "end_line": 78
@@ -94,9 +94,9 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:03:36",
       "gap_end": "2026-01-07T04:09:43",
-      "duration_human": "0:06:07",
-      "duration_seconds": 367.0,
-      "severity": "HIGH",
+      "duration_sec": 367.0,
+      "duration_human": "6m 7s",
+      "severity": "MEDIUM",
       "start_line": 80,
       "end_line": 81
     },
@@ -104,8 +104,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:09:45",
       "gap_end": "2026-01-07T07:07:00",
-      "duration_human": "2:57:15",
-      "duration_seconds": 10635.0,
+      "duration_sec": 10635.0,
+      "duration_human": "2h 57m",
       "severity": "CRITICAL",
       "start_line": 82,
       "end_line": 83
@@ -114,8 +114,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T07:07:04",
       "gap_end": "2026-01-07T19:43:13",
-      "duration_human": "12:36:09",
-      "duration_seconds": 45369.0,
+      "duration_sec": 45369.0,
+      "duration_human": "12h 36m",
       "severity": "CRITICAL",
       "start_line": 90,
       "end_line": 91
@@ -124,8 +124,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T19:43:13",
       "gap_end": "2026-01-07T20:29:26",
-      "duration_human": "0:46:13",
-      "duration_seconds": 2773.0,
+      "duration_sec": 2773.0,
+      "duration_human": "46m 13s",
       "severity": "HIGH",
       "start_line": 91,
       "end_line": 92
@@ -134,9 +134,9 @@
       "type": "GAP",
       "gap_start": "2026-01-07T20:29:26",
       "gap_end": "2026-01-07T20:34:57",
-      "duration_human": "0:05:31",
-      "duration_seconds": 331.0,
-      "severity": "HIGH",
+      "duration_sec": 331.0,
+      "duration_human": "5m 31s",
+      "severity": "MEDIUM",
       "start_line": 92,
       "end_line": 93
     },
@@ -144,8 +144,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T20:34:57",
       "gap_end": "2026-01-07T20:55:06",
-      "duration_human": "0:20:09",
-      "duration_seconds": 1209.0,
+      "duration_sec": 1209.0,
+      "duration_human": "20m 9s",
       "severity": "HIGH",
       "start_line": 93,
       "end_line": 94
@@ -154,8 +154,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T20:55:07",
       "gap_end": "2026-01-08T01:30:59",
-      "duration_human": "4:35:52",
-      "duration_seconds": 16552.0,
+      "duration_sec": 16552.0,
+      "duration_human": "4h 35m",
       "severity": "CRITICAL",
       "start_line": 100,
       "end_line": 101
@@ -164,8 +164,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T01:30:59",
       "gap_end": "2026-01-08T02:08:10",
-      "duration_human": "0:37:11",
-      "duration_seconds": 2231.0,
+      "duration_sec": 2231.0,
+      "duration_human": "37m 11s",
       "severity": "HIGH",
       "start_line": 120,
       "end_line": 121
@@ -174,8 +174,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T02:08:12",
       "gap_end": "2026-01-08T02:23:10",
-      "duration_human": "0:14:58",
-      "duration_seconds": 898.0,
+      "duration_sec": 898.0,
+      "duration_human": "14m 58s",
       "severity": "HIGH",
       "start_line": 135,
       "end_line": 136
@@ -184,8 +184,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T02:23:10",
       "gap_end": "2026-01-08T04:07:05",
-      "duration_human": "1:43:55",
-      "duration_seconds": 6235.0,
+      "duration_sec": 6235.0,
+      "duration_human": "1h 43m",
       "severity": "CRITICAL",
       "start_line": 136,
       "end_line": 137
@@ -194,9 +194,9 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:07:06",
       "gap_end": "2026-01-08T04:12:42",
-      "duration_human": "0:05:36",
-      "duration_seconds": 336.0,
-      "severity": "HIGH",
+      "duration_sec": 336.0,
+      "duration_human": "5m 36s",
+      "severity": "MEDIUM",
       "start_line": 139,
       "end_line": 140
     },
@@ -204,8 +204,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:12:43",
       "gap_end": "2026-01-09T04:08:55",
-      "duration_human": "23:56:12",
-      "duration_seconds": 86172.0,
+      "duration_sec": 86172.0,
+      "duration_human": "23h 56m",
       "severity": "CRITICAL",
       "start_line": 141,
       "end_line": 142
@@ -214,9 +214,9 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:09:11",
       "gap_end": "2026-01-09T04:15:18",
-      "duration_human": "0:06:07",
-      "duration_seconds": 367.0,
-      "severity": "HIGH",
+      "duration_sec": 367.0,
+      "duration_human": "6m 7s",
+      "severity": "MEDIUM",
       "start_line": 147,
       "end_line": 148
     },
@@ -224,19 +224,19 @@
       "type": "REVERSED",
       "gap_start": "2026-01-09T04:15:18",
       "gap_end": "2026-01-01T04:06:57",
-      "duration_human": "-9 days, 23:51:39",
-      "duration_seconds": -691701.0,
-      "severity": "CRITICAL",
-      "start_line": 187,
+      "duration_sec": -691701.0,
+      "duration_human": "192h 8m",
+      "severity": "REVERSED",
+      "start_line": 149,
       "end_line": 188
     },
     {
       "type": "GAP",
       "gap_start": "2026-01-01T04:06:59",
       "gap_end": "2026-01-01T04:13:03",
-      "duration_human": "0:06:04",
-      "duration_seconds": 364.0,
-      "severity": "HIGH",
+      "duration_sec": 364.0,
+      "duration_human": "6m 4s",
+      "severity": "MEDIUM",
       "start_line": 190,
       "end_line": 191
     },
@@ -244,8 +244,8 @@
       "type": "GAP",
       "gap_start": "2026-01-01T04:13:04",
       "gap_end": "2026-01-01T08:56:36",
-      "duration_human": "4:43:32",
-      "duration_seconds": 17012.0,
+      "duration_sec": 17012.0,
+      "duration_human": "4h 43m",
       "severity": "CRITICAL",
       "start_line": 192,
       "end_line": 193
@@ -254,8 +254,8 @@
       "type": "GAP",
       "gap_start": "2026-01-01T08:56:36",
       "gap_end": "2026-01-02T03:17:26",
-      "duration_human": "18:20:50",
-      "duration_seconds": 66050.0,
+      "duration_sec": 66050.0,
+      "duration_human": "18h 20m",
       "severity": "CRITICAL",
       "start_line": 198,
       "end_line": 199
@@ -264,8 +264,8 @@
       "type": "GAP",
       "gap_start": "2026-01-02T03:18:22",
       "gap_end": "2026-01-02T04:05:58",
-      "duration_human": "0:47:36",
-      "duration_seconds": 2856.0,
+      "duration_sec": 2856.0,
+      "duration_human": "47m 36s",
       "severity": "HIGH",
       "start_line": 221,
       "end_line": 222
@@ -274,9 +274,9 @@
       "type": "GAP",
       "gap_start": "2026-01-02T04:06:00",
       "gap_end": "2026-01-02T04:11:42",
-      "duration_human": "0:05:42",
-      "duration_seconds": 342.0,
-      "severity": "HIGH",
+      "duration_sec": 342.0,
+      "duration_human": "5m 42s",
+      "severity": "MEDIUM",
       "start_line": 224,
       "end_line": 225
     },
@@ -284,8 +284,8 @@
       "type": "GAP",
       "gap_start": "2026-01-02T04:11:42",
       "gap_end": "2026-01-02T04:30:55",
-      "duration_human": "0:19:13",
-      "duration_seconds": 1153.0,
+      "duration_sec": 1153.0,
+      "duration_human": "19m 13s",
       "severity": "HIGH",
       "start_line": 226,
       "end_line": 227
@@ -294,8 +294,8 @@
       "type": "GAP",
       "gap_start": "2026-01-02T04:30:56",
       "gap_end": "2026-01-02T13:16:30",
-      "duration_human": "8:45:34",
-      "duration_seconds": 31534.0,
+      "duration_sec": 31534.0,
+      "duration_human": "8h 45m",
       "severity": "CRITICAL",
       "start_line": 246,
       "end_line": 247
@@ -304,8 +304,8 @@
       "type": "GAP",
       "gap_start": "2026-01-02T13:16:32",
       "gap_end": "2026-01-03T01:41:29",
-      "duration_human": "12:24:57",
-      "duration_seconds": 44697.0,
+      "duration_sec": 44697.0,
+      "duration_human": "12h 24m",
       "severity": "CRITICAL",
       "start_line": 269,
       "end_line": 270
@@ -314,8 +314,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T01:41:32",
       "gap_end": "2026-01-03T02:55:14",
-      "duration_human": "1:13:42",
-      "duration_seconds": 4422.0,
+      "duration_sec": 4422.0,
+      "duration_human": "1h 13m",
       "severity": "CRITICAL",
       "start_line": 279,
       "end_line": 280
@@ -324,8 +324,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T02:55:14",
       "gap_end": "2026-01-03T04:05:28",
-      "duration_human": "1:10:14",
-      "duration_seconds": 4214.0,
+      "duration_sec": 4214.0,
+      "duration_human": "1h 10m",
       "severity": "CRITICAL",
       "start_line": 281,
       "end_line": 282
@@ -334,9 +334,9 @@
       "type": "GAP",
       "gap_start": "2026-01-03T04:05:30",
       "gap_end": "2026-01-03T04:13:08",
-      "duration_human": "0:07:38",
-      "duration_seconds": 458.0,
-      "severity": "HIGH",
+      "duration_sec": 458.0,
+      "duration_human": "7m 38s",
+      "severity": "MEDIUM",
       "start_line": 284,
       "end_line": 285
     },
@@ -344,8 +344,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T04:13:09",
       "gap_end": "2026-01-03T23:30:03",
-      "duration_human": "19:16:54",
-      "duration_seconds": 69414.0,
+      "duration_sec": 69414.0,
+      "duration_human": "19h 16m",
       "severity": "CRITICAL",
       "start_line": 286,
       "end_line": 287
@@ -354,8 +354,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T23:30:05",
       "gap_end": "2026-01-04T04:05:34",
-      "duration_human": "4:35:29",
-      "duration_seconds": 16529.0,
+      "duration_sec": 16529.0,
+      "duration_human": "4h 35m",
       "severity": "CRITICAL",
       "start_line": 295,
       "end_line": 296
@@ -364,9 +364,9 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:05:35",
       "gap_end": "2026-01-04T04:11:12",
-      "duration_human": "0:05:37",
-      "duration_seconds": 337.0,
-      "severity": "HIGH",
+      "duration_sec": 337.0,
+      "duration_human": "5m 37s",
+      "severity": "MEDIUM",
       "start_line": 298,
       "end_line": 299
     },
@@ -374,8 +374,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:11:12",
       "gap_end": "2026-01-04T18:55:11",
-      "duration_human": "14:43:59",
-      "duration_seconds": 53039.0,
+      "duration_sec": 53039.0,
+      "duration_human": "14h 43m",
       "severity": "CRITICAL",
       "start_line": 300,
       "end_line": 301
@@ -384,8 +384,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T18:55:18",
       "gap_end": "2026-01-05T04:04:25",
-      "duration_human": "9:09:07",
-      "duration_seconds": 32947.0,
+      "duration_sec": 32947.0,
+      "duration_human": "9h 9m",
       "severity": "CRITICAL",
       "start_line": 313,
       "end_line": 314
@@ -394,9 +394,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:04:26",
       "gap_end": "2026-01-05T04:10:34",
-      "duration_human": "0:06:08",
-      "duration_seconds": 368.0,
-      "severity": "HIGH",
+      "duration_sec": 368.0,
+      "duration_human": "6m 8s",
+      "severity": "MEDIUM",
       "start_line": 316,
       "end_line": 317
     },
@@ -404,8 +404,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:10:35",
       "gap_end": "2026-01-05T04:41:49",
-      "duration_human": "0:31:14",
-      "duration_seconds": 1874.0,
+      "duration_sec": 1874.0,
+      "duration_human": "31m 14s",
       "severity": "HIGH",
       "start_line": 318,
       "end_line": 319
@@ -414,8 +414,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:41:51",
       "gap_end": "2026-01-05T09:20:24",
-      "duration_human": "4:38:33",
-      "duration_seconds": 16713.0,
+      "duration_sec": 16713.0,
+      "duration_human": "4h 38m",
       "severity": "CRITICAL",
       "start_line": 338,
       "end_line": 339
@@ -424,8 +424,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T09:20:24",
       "gap_end": "2026-01-05T19:25:30",
-      "duration_human": "10:05:06",
-      "duration_seconds": 36306.0,
+      "duration_sec": 36306.0,
+      "duration_human": "10h 5m",
       "severity": "CRITICAL",
       "start_line": 356,
       "end_line": 357
@@ -434,8 +434,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T19:25:34",
       "gap_end": "2026-01-06T04:04:17",
-      "duration_human": "8:38:43",
-      "duration_seconds": 31123.0,
+      "duration_sec": 31123.0,
+      "duration_human": "8h 38m",
       "severity": "CRITICAL",
       "start_line": 369,
       "end_line": 370
@@ -444,9 +444,9 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:04:31",
       "gap_end": "2026-01-06T04:10:02",
-      "duration_human": "0:05:31",
-      "duration_seconds": 331.0,
-      "severity": "HIGH",
+      "duration_sec": 331.0,
+      "duration_human": "5m 31s",
+      "severity": "MEDIUM",
       "start_line": 375,
       "end_line": 376
     },
@@ -454,8 +454,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:10:04",
       "gap_end": "2026-01-07T04:02:47",
-      "duration_human": "23:52:43",
-      "duration_seconds": 85963.0,
+      "duration_sec": 85963.0,
+      "duration_human": "23h 52m",
       "severity": "CRITICAL",
       "start_line": 377,
       "end_line": 378
@@ -464,9 +464,9 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:02:49",
       "gap_end": "2026-01-07T04:08:56",
-      "duration_human": "0:06:07",
-      "duration_seconds": 367.0,
-      "severity": "HIGH",
+      "duration_sec": 367.0,
+      "duration_human": "6m 7s",
+      "severity": "MEDIUM",
       "start_line": 380,
       "end_line": 381
     },
@@ -474,8 +474,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:08:57",
       "gap_end": "2026-01-07T08:05:37",
-      "duration_human": "3:56:40",
-      "duration_seconds": 14200.0,
+      "duration_sec": 14200.0,
+      "duration_human": "3h 56m",
       "severity": "CRITICAL",
       "start_line": 382,
       "end_line": 383
@@ -484,8 +484,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T08:05:39",
       "gap_end": "2026-01-08T04:03:15",
-      "duration_human": "19:57:36",
-      "duration_seconds": 71856.0,
+      "duration_sec": 71856.0,
+      "duration_human": "19h 57m",
       "severity": "CRITICAL",
       "start_line": 387,
       "end_line": 388
@@ -494,9 +494,9 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:03:17",
       "gap_end": "2026-01-08T04:09:00",
-      "duration_human": "0:05:43",
-      "duration_seconds": 343.0,
-      "severity": "HIGH",
+      "duration_sec": 343.0,
+      "duration_human": "5m 43s",
+      "severity": "MEDIUM",
       "start_line": 390,
       "end_line": 391
     },
@@ -504,8 +504,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:09:01",
       "gap_end": "2026-01-08T08:10:24",
-      "duration_human": "4:01:23",
-      "duration_seconds": 14483.0,
+      "duration_sec": 14483.0,
+      "duration_human": "4h 1m",
       "severity": "CRITICAL",
       "start_line": 392,
       "end_line": 393
@@ -514,8 +514,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T08:10:30",
       "gap_end": "2026-01-08T20:58:46",
-      "duration_human": "12:48:16",
-      "duration_seconds": 46096.0,
+      "duration_sec": 46096.0,
+      "duration_human": "12h 48m",
       "severity": "CRITICAL",
       "start_line": 401,
       "end_line": 402
@@ -524,8 +524,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T20:58:55",
       "gap_end": "2026-01-08T21:42:46",
-      "duration_human": "0:43:51",
-      "duration_seconds": 2631.0,
+      "duration_sec": 2631.0,
+      "duration_human": "43m 51s",
       "severity": "HIGH",
       "start_line": 411,
       "end_line": 412
@@ -534,8 +534,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T21:42:46",
       "gap_end": "2026-01-09T03:22:22",
-      "duration_human": "5:39:36",
-      "duration_seconds": 20376.0,
+      "duration_sec": 20376.0,
+      "duration_human": "5h 39m",
       "severity": "CRITICAL",
       "start_line": 421,
       "end_line": 422
@@ -544,8 +544,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T03:22:23",
       "gap_end": "2026-01-09T04:03:10",
-      "duration_human": "0:40:47",
-      "duration_seconds": 2447.0,
+      "duration_sec": 2447.0,
+      "duration_human": "40m 47s",
       "severity": "HIGH",
       "start_line": 444,
       "end_line": 445
@@ -554,9 +554,9 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:03:12",
       "gap_end": "2026-01-09T04:09:29",
-      "duration_human": "0:06:17",
-      "duration_seconds": 377.0,
-      "severity": "HIGH",
+      "duration_sec": 377.0,
+      "duration_human": "6m 17s",
+      "severity": "MEDIUM",
       "start_line": 447,
       "end_line": 448
     },
@@ -564,8 +564,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:09:30",
       "gap_end": "2026-01-09T10:08:19",
-      "duration_human": "5:58:49",
-      "duration_seconds": 21529.0,
+      "duration_sec": 21529.0,
+      "duration_human": "5h 58m",
       "severity": "CRITICAL",
       "start_line": 449,
       "end_line": 450
@@ -574,8 +574,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T10:08:20",
       "gap_end": "2026-01-09T10:48:01",
-      "duration_human": "0:39:41",
-      "duration_seconds": 2381.0,
+      "duration_sec": 2381.0,
+      "duration_human": "39m 41s",
       "severity": "HIGH",
       "start_line": 459,
       "end_line": 460
@@ -584,8 +584,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T10:48:21",
       "gap_end": "2026-01-09T12:11:53",
-      "duration_human": "1:23:32",
-      "duration_seconds": 5012.0,
+      "duration_sec": 5012.0,
+      "duration_human": "1h 23m",
       "severity": "CRITICAL",
       "start_line": 482,
       "end_line": 483
@@ -594,8 +594,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T12:12:10",
       "gap_end": "2026-01-09T14:44:35",
-      "duration_human": "2:32:25",
-      "duration_seconds": 9145.0,
+      "duration_sec": 9145.0,
+      "duration_human": "2h 32m",
       "severity": "CRITICAL",
       "start_line": 495,
       "end_line": 496
@@ -604,8 +604,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T14:44:35",
       "gap_end": "2026-01-10T04:03:41",
-      "duration_human": "13:19:06",
-      "duration_seconds": 47946.0,
+      "duration_sec": 47946.0,
+      "duration_human": "13h 19m",
       "severity": "CRITICAL",
       "start_line": 502,
       "end_line": 503
@@ -614,9 +614,9 @@
       "type": "GAP",
       "gap_start": "2026-01-10T04:03:43",
       "gap_end": "2026-01-10T04:09:30",
-      "duration_human": "0:05:47",
-      "duration_seconds": 347.0,
-      "severity": "HIGH",
+      "duration_sec": 347.0,
+      "duration_human": "5m 47s",
+      "severity": "MEDIUM",
       "start_line": 505,
       "end_line": 506
     },
@@ -624,8 +624,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T04:09:31",
       "gap_end": "2026-01-10T12:48:38",
-      "duration_human": "8:39:07",
-      "duration_seconds": 31147.0,
+      "duration_sec": 31147.0,
+      "duration_human": "8h 39m",
       "severity": "CRITICAL",
       "start_line": 507,
       "end_line": 508
@@ -634,8 +634,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T12:48:41",
       "gap_end": "2026-01-10T19:03:00",
-      "duration_human": "6:14:19",
-      "duration_seconds": 22459.0,
+      "duration_sec": 22459.0,
+      "duration_human": "6h 14m",
       "severity": "CRITICAL",
       "start_line": 523,
       "end_line": 524
@@ -644,8 +644,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T19:03:07",
       "gap_end": "2026-01-10T20:16:17",
-      "duration_human": "1:13:10",
-      "duration_seconds": 4390.0,
+      "duration_sec": 4390.0,
+      "duration_human": "1h 13m",
       "severity": "CRITICAL",
       "start_line": 533,
       "end_line": 534
@@ -654,8 +654,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T20:16:30",
       "gap_end": "2026-01-10T20:53:04",
-      "duration_human": "0:36:34",
-      "duration_seconds": 2194.0,
+      "duration_sec": 2194.0,
+      "duration_human": "36m 34s",
       "severity": "HIGH",
       "start_line": 538,
       "end_line": 539
@@ -664,8 +664,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T20:53:06",
       "gap_end": "2026-01-10T22:16:32",
-      "duration_human": "1:23:26",
-      "duration_seconds": 5006.0,
+      "duration_sec": 5006.0,
+      "duration_human": "1h 23m",
       "severity": "CRITICAL",
       "start_line": 584,
       "end_line": 585
@@ -674,9 +674,9 @@
       "type": "REVERSED",
       "gap_start": "2026-01-10T22:16:33",
       "gap_end": "2026-01-10T00:21:28",
-      "duration_human": "-1 day, 2:04:55",
-      "duration_seconds": -78905.0,
-      "severity": "CRITICAL",
+      "duration_sec": -78905.0,
+      "duration_human": "21h 55m",
+      "severity": "REVERSED",
       "start_line": 604,
       "end_line": 605
     },
@@ -684,8 +684,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T00:21:35",
       "gap_end": "2026-01-10T04:05:17",
-      "duration_human": "3:43:42",
-      "duration_seconds": 13422.0,
+      "duration_sec": 13422.0,
+      "duration_human": "3h 43m",
       "severity": "CRITICAL",
       "start_line": 614,
       "end_line": 615
@@ -694,9 +694,9 @@
       "type": "GAP",
       "gap_start": "2026-01-10T04:05:19",
       "gap_end": "2026-01-10T04:11:35",
-      "duration_human": "0:06:16",
-      "duration_seconds": 376.0,
-      "severity": "HIGH",
+      "duration_sec": 376.0,
+      "duration_human": "6m 16s",
+      "severity": "MEDIUM",
       "start_line": 617,
       "end_line": 618
     },
@@ -704,8 +704,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T04:11:36",
       "gap_end": "2026-01-10T05:02:26",
-      "duration_human": "0:50:50",
-      "duration_seconds": 3050.0,
+      "duration_sec": 3050.0,
+      "duration_human": "50m 50s",
       "severity": "HIGH",
       "start_line": 619,
       "end_line": 620
@@ -714,8 +714,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T05:02:27",
       "gap_end": "2026-01-10T07:57:30",
-      "duration_human": "2:55:03",
-      "duration_seconds": 10503.0,
+      "duration_sec": 10503.0,
+      "duration_human": "2h 55m",
       "severity": "CRITICAL",
       "start_line": 627,
       "end_line": 628
@@ -724,8 +724,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T07:57:30",
       "gap_end": "2026-01-10T09:14:43",
-      "duration_human": "1:17:13",
-      "duration_seconds": 4633.0,
+      "duration_sec": 4633.0,
+      "duration_human": "1h 17m",
       "severity": "CRITICAL",
       "start_line": 650,
       "end_line": 651
@@ -734,8 +734,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T09:14:44",
       "gap_end": "2026-01-10T10:56:41",
-      "duration_human": "1:41:57",
-      "duration_seconds": 6117.0,
+      "duration_sec": 6117.0,
+      "duration_human": "1h 41m",
       "severity": "CRITICAL",
       "start_line": 658,
       "end_line": 659
@@ -744,9 +744,9 @@
       "type": "REVERSED",
       "gap_start": "2026-01-10T10:56:44",
       "gap_end": "2026-01-02T01:41:32",
-      "duration_human": "-9 days, 14:44:48",
-      "duration_seconds": -724512.0,
-      "severity": "CRITICAL",
+      "duration_sec": -724512.0,
+      "duration_human": "201h 15m",
+      "severity": "REVERSED",
       "start_line": 668,
       "end_line": 669
     },
@@ -754,8 +754,8 @@
       "type": "GAP",
       "gap_start": "2026-01-02T01:41:33",
       "gap_end": "2026-01-02T04:04:02",
-      "duration_human": "2:22:29",
-      "duration_seconds": 8549.0,
+      "duration_sec": 8549.0,
+      "duration_human": "2h 22m",
       "severity": "CRITICAL",
       "start_line": 684,
       "end_line": 685
@@ -764,9 +764,9 @@
       "type": "GAP",
       "gap_start": "2026-01-02T04:04:03",
       "gap_end": "2026-01-02T04:09:53",
-      "duration_human": "0:05:50",
-      "duration_seconds": 350.0,
-      "severity": "HIGH",
+      "duration_sec": 350.0,
+      "duration_human": "5m 50s",
+      "severity": "MEDIUM",
       "start_line": 687,
       "end_line": 688
     },
@@ -774,9 +774,9 @@
       "type": "GAP",
       "gap_start": "2026-01-02T04:09:54",
       "gap_end": "2026-01-02T04:15:33",
-      "duration_human": "0:05:39",
-      "duration_seconds": 339.0,
-      "severity": "HIGH",
+      "duration_sec": 339.0,
+      "duration_human": "5m 39s",
+      "severity": "MEDIUM",
       "start_line": 689,
       "end_line": 690
     },
@@ -784,8 +784,8 @@
       "type": "GAP",
       "gap_start": "2026-01-02T04:15:43",
       "gap_end": "2026-01-03T04:07:47",
-      "duration_human": "23:52:04",
-      "duration_seconds": 85924.0,
+      "duration_sec": 85924.0,
+      "duration_human": "23h 52m",
       "severity": "CRITICAL",
       "start_line": 709,
       "end_line": 710
@@ -794,9 +794,9 @@
       "type": "GAP",
       "gap_start": "2026-01-03T04:08:03",
       "gap_end": "2026-01-03T04:14:00",
-      "duration_human": "0:05:57",
-      "duration_seconds": 357.0,
-      "severity": "HIGH",
+      "duration_sec": 357.0,
+      "duration_human": "5m 57s",
+      "severity": "MEDIUM",
       "start_line": 715,
       "end_line": 716
     },
@@ -804,8 +804,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T04:14:01",
       "gap_end": "2026-01-03T10:05:25",
-      "duration_human": "5:51:24",
-      "duration_seconds": 21084.0,
+      "duration_sec": 21084.0,
+      "duration_human": "5h 51m",
       "severity": "CRITICAL",
       "start_line": 717,
       "end_line": 718
@@ -814,8 +814,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T10:05:25",
       "gap_end": "2026-01-03T23:16:09",
-      "duration_human": "13:10:44",
-      "duration_seconds": 47444.0,
+      "duration_sec": 47444.0,
+      "duration_human": "13h 10m",
       "severity": "CRITICAL",
       "start_line": 740,
       "end_line": 741
@@ -824,8 +824,8 @@
       "type": "GAP",
       "gap_start": "2026-01-03T23:16:09",
       "gap_end": "2026-01-04T04:03:06",
-      "duration_human": "4:46:57",
-      "duration_seconds": 17217.0,
+      "duration_sec": 17217.0,
+      "duration_human": "4h 46m",
       "severity": "CRITICAL",
       "start_line": 763,
       "end_line": 764
@@ -834,9 +834,9 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:03:08",
       "gap_end": "2026-01-04T04:08:48",
-      "duration_human": "0:05:40",
-      "duration_seconds": 340.0,
-      "severity": "HIGH",
+      "duration_sec": 340.0,
+      "duration_human": "5m 40s",
+      "severity": "MEDIUM",
       "start_line": 766,
       "end_line": 767
     },
@@ -844,8 +844,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:08:49",
       "gap_end": "2026-01-04T09:33:09",
-      "duration_human": "5:24:20",
-      "duration_seconds": 19460.0,
+      "duration_sec": 19460.0,
+      "duration_human": "5h 24m",
       "severity": "CRITICAL",
       "start_line": 768,
       "end_line": 769
@@ -854,8 +854,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T09:33:14",
       "gap_end": "2026-01-04T12:52:44",
-      "duration_human": "3:19:30",
-      "duration_seconds": 11970.0,
+      "duration_sec": 11970.0,
+      "duration_human": "3h 19m",
       "severity": "CRITICAL",
       "start_line": 771,
       "end_line": 772
@@ -864,8 +864,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T12:52:44",
       "gap_end": "2026-01-04T19:15:48",
-      "duration_human": "6:23:04",
-      "duration_seconds": 22984.0,
+      "duration_sec": 22984.0,
+      "duration_human": "6h 23m",
       "severity": "CRITICAL",
       "start_line": 794,
       "end_line": 795
@@ -874,8 +874,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T19:16:01",
       "gap_end": "2026-01-05T04:03:16",
-      "duration_human": "8:47:15",
-      "duration_seconds": 31635.0,
+      "duration_sec": 31635.0,
+      "duration_human": "8h 47m",
       "severity": "CRITICAL",
       "start_line": 807,
       "end_line": 808
@@ -884,9 +884,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:03:18",
       "gap_end": "2026-01-05T04:09:29",
-      "duration_human": "0:06:11",
-      "duration_seconds": 371.0,
-      "severity": "HIGH",
+      "duration_sec": 371.0,
+      "duration_human": "6m 11s",
+      "severity": "MEDIUM",
       "start_line": 810,
       "end_line": 811
     },
@@ -894,8 +894,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:09:30",
       "gap_end": "2026-01-05T13:36:28",
-      "duration_human": "9:26:58",
-      "duration_seconds": 34018.0,
+      "duration_sec": 34018.0,
+      "duration_human": "9h 26m",
       "severity": "CRITICAL",
       "start_line": 812,
       "end_line": 813
@@ -904,8 +904,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T13:36:37",
       "gap_end": "2026-01-05T13:52:21",
-      "duration_human": "0:15:44",
-      "duration_seconds": 944.0,
+      "duration_sec": 944.0,
+      "duration_human": "15m 44s",
       "severity": "HIGH",
       "start_line": 822,
       "end_line": 823
@@ -914,8 +914,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T13:52:23",
       "gap_end": "2026-01-06T02:22:31",
-      "duration_human": "12:30:08",
-      "duration_seconds": 45008.0,
+      "duration_sec": 45008.0,
+      "duration_human": "12h 30m",
       "severity": "CRITICAL",
       "start_line": 845,
       "end_line": 846
@@ -924,8 +924,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T02:22:33",
       "gap_end": "2026-01-06T04:03:08",
-      "duration_human": "1:40:35",
-      "duration_seconds": 6035.0,
+      "duration_sec": 6035.0,
+      "duration_human": "1h 40m",
       "severity": "CRITICAL",
       "start_line": 850,
       "end_line": 851
@@ -934,9 +934,9 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:03:10",
       "gap_end": "2026-01-06T04:08:43",
-      "duration_human": "0:05:33",
-      "duration_seconds": 333.0,
-      "severity": "HIGH",
+      "duration_sec": 333.0,
+      "duration_human": "5m 33s",
+      "severity": "MEDIUM",
       "start_line": 853,
       "end_line": 854
     },
@@ -944,8 +944,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:08:44",
       "gap_end": "2026-01-06T18:00:56",
-      "duration_human": "13:52:12",
-      "duration_seconds": 49932.0,
+      "duration_sec": 49932.0,
+      "duration_human": "13h 52m",
       "severity": "CRITICAL",
       "start_line": 855,
       "end_line": 856
@@ -954,8 +954,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T18:00:57",
       "gap_end": "2026-01-07T04:04:31",
-      "duration_human": "10:03:34",
-      "duration_seconds": 36214.0,
+      "duration_sec": 36214.0,
+      "duration_human": "10h 3m",
       "severity": "CRITICAL",
       "start_line": 878,
       "end_line": 879
@@ -964,9 +964,9 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:04:33",
       "gap_end": "2026-01-07T04:10:44",
-      "duration_human": "0:06:11",
-      "duration_seconds": 371.0,
-      "severity": "HIGH",
+      "duration_sec": 371.0,
+      "duration_human": "6m 11s",
+      "severity": "MEDIUM",
       "start_line": 881,
       "end_line": 882
     },
@@ -974,8 +974,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:10:45",
       "gap_end": "2026-01-07T07:18:12",
-      "duration_human": "3:07:27",
-      "duration_seconds": 11247.0,
+      "duration_sec": 11247.0,
+      "duration_human": "3h 7m",
       "severity": "CRITICAL",
       "start_line": 883,
       "end_line": 884
@@ -984,8 +984,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T07:18:14",
       "gap_end": "2026-01-07T08:06:12",
-      "duration_human": "0:47:58",
-      "duration_seconds": 2878.0,
+      "duration_sec": 2878.0,
+      "duration_human": "47m 58s",
       "severity": "HIGH",
       "start_line": 895,
       "end_line": 896
@@ -994,8 +994,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T08:09:11",
       "gap_end": "2026-01-07T14:18:55",
-      "duration_human": "6:09:44",
-      "duration_seconds": 22184.0,
+      "duration_sec": 22184.0,
+      "duration_human": "6h 9m",
       "severity": "CRITICAL",
       "start_line": 908,
       "end_line": 909
@@ -1004,8 +1004,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T14:18:59",
       "gap_end": "2026-01-07T16:33:52",
-      "duration_human": "2:14:53",
-      "duration_seconds": 8093.0,
+      "duration_sec": 8093.0,
+      "duration_human": "2h 14m",
       "severity": "CRITICAL",
       "start_line": 916,
       "end_line": 917
@@ -1014,8 +1014,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T16:33:52",
       "gap_end": "2026-01-07T23:09:45",
-      "duration_human": "6:35:53",
-      "duration_seconds": 23753.0,
+      "duration_sec": 23753.0,
+      "duration_human": "6h 35m",
       "severity": "CRITICAL",
       "start_line": 928,
       "end_line": 929
@@ -1024,8 +1024,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T23:09:50",
       "gap_end": "2026-01-08T04:04:19",
-      "duration_human": "4:54:29",
-      "duration_seconds": 17669.0,
+      "duration_sec": 17669.0,
+      "duration_human": "4h 54m",
       "severity": "CRITICAL",
       "start_line": 947,
       "end_line": 948
@@ -1034,9 +1034,9 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:04:20",
       "gap_end": "2026-01-08T04:12:07",
-      "duration_human": "0:07:47",
-      "duration_seconds": 467.0,
-      "severity": "HIGH",
+      "duration_sec": 467.0,
+      "duration_human": "7m 47s",
+      "severity": "MEDIUM",
       "start_line": 950,
       "end_line": 951
     },
@@ -1044,8 +1044,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:12:08",
       "gap_end": "2026-01-08T20:14:55",
-      "duration_human": "16:02:47",
-      "duration_seconds": 57767.0,
+      "duration_sec": 57767.0,
+      "duration_human": "16h 2m",
       "severity": "CRITICAL",
       "start_line": 952,
       "end_line": 953
@@ -1054,8 +1054,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T20:14:56",
       "gap_end": "2026-01-09T04:04:23",
-      "duration_human": "7:49:27",
-      "duration_seconds": 28167.0,
+      "duration_sec": 28167.0,
+      "duration_human": "7h 49m",
       "severity": "CRITICAL",
       "start_line": 956,
       "end_line": 957
@@ -1064,9 +1064,9 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:04:25",
       "gap_end": "2026-01-09T04:10:11",
-      "duration_human": "0:05:46",
-      "duration_seconds": 346.0,
-      "severity": "HIGH",
+      "duration_sec": 346.0,
+      "duration_human": "5m 46s",
+      "severity": "MEDIUM",
       "start_line": 959,
       "end_line": 960
     },
@@ -1074,8 +1074,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:10:12",
       "gap_end": "2026-01-09T11:35:59",
-      "duration_human": "7:25:47",
-      "duration_seconds": 26747.0,
+      "duration_sec": 26747.0,
+      "duration_human": "7h 25m",
       "severity": "CRITICAL",
       "start_line": 961,
       "end_line": 962
@@ -1084,8 +1084,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T11:35:59",
       "gap_end": "2026-01-09T12:16:49",
-      "duration_human": "0:40:50",
-      "duration_seconds": 2450.0,
+      "duration_sec": 2450.0,
+      "duration_human": "40m 50s",
       "severity": "HIGH",
       "start_line": 984,
       "end_line": 985
@@ -1094,8 +1094,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T12:16:52",
       "gap_end": "2026-01-09T12:59:44",
-      "duration_human": "0:42:52",
-      "duration_seconds": 2572.0,
+      "duration_sec": 2572.0,
+      "duration_human": "42m 52s",
       "severity": "HIGH",
       "start_line": 1002,
       "end_line": 1003
@@ -1104,8 +1104,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T12:59:45",
       "gap_end": "2026-01-09T19:34:06",
-      "duration_human": "6:34:21",
-      "duration_seconds": 23661.0,
+      "duration_sec": 23661.0,
+      "duration_human": "6h 34m",
       "severity": "CRITICAL",
       "start_line": 1025,
       "end_line": 1026
@@ -1114,8 +1114,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T19:34:14",
       "gap_end": "2026-01-09T22:53:19",
-      "duration_human": "3:19:05",
-      "duration_seconds": 11945.0,
+      "duration_sec": 11945.0,
+      "duration_human": "3h 19m",
       "severity": "CRITICAL",
       "start_line": 1035,
       "end_line": 1036
@@ -1124,8 +1124,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T22:53:22",
       "gap_end": "2026-01-10T03:55:15",
-      "duration_human": "5:01:53",
-      "duration_seconds": 18113.0,
+      "duration_sec": 18113.0,
+      "duration_human": "5h 1m",
       "severity": "CRITICAL",
       "start_line": 1058,
       "end_line": 1059
@@ -1134,9 +1134,9 @@
       "type": "GAP",
       "gap_start": "2026-01-10T03:55:15",
       "gap_end": "2026-01-10T04:04:31",
-      "duration_human": "0:09:16",
-      "duration_seconds": 556.0,
-      "severity": "HIGH",
+      "duration_sec": 556.0,
+      "duration_human": "9m 16s",
+      "severity": "MEDIUM",
       "start_line": 1081,
       "end_line": 1082
     },
@@ -1144,9 +1144,9 @@
       "type": "GAP",
       "gap_start": "2026-01-10T04:04:46",
       "gap_end": "2026-01-10T04:10:47",
-      "duration_human": "0:06:01",
-      "duration_seconds": 361.0,
-      "severity": "HIGH",
+      "duration_sec": 361.0,
+      "duration_human": "6m 1s",
+      "severity": "MEDIUM",
       "start_line": 1087,
       "end_line": 1088
     },
@@ -1154,8 +1154,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T04:10:47",
       "gap_end": "2026-01-10T07:24:24",
-      "duration_human": "3:13:37",
-      "duration_seconds": 11617.0,
+      "duration_sec": 11617.0,
+      "duration_human": "3h 13m",
       "severity": "CRITICAL",
       "start_line": 1089,
       "end_line": 1090
@@ -1164,8 +1164,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T07:24:34",
       "gap_end": "2026-01-10T13:17:22",
-      "duration_human": "5:52:48",
-      "duration_seconds": 21168.0,
+      "duration_sec": 21168.0,
+      "duration_human": "5h 52m",
       "severity": "CRITICAL",
       "start_line": 1112,
       "end_line": 1113
@@ -1174,8 +1174,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T13:17:22",
       "gap_end": "2026-01-10T16:01:43",
-      "duration_human": "2:44:21",
-      "duration_seconds": 9861.0,
+      "duration_sec": 9861.0,
+      "duration_human": "2h 44m",
       "severity": "CRITICAL",
       "start_line": 1135,
       "end_line": 1136
@@ -1184,8 +1184,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T16:03:18",
       "gap_end": "2026-01-10T16:33:01",
-      "duration_human": "0:29:43",
-      "duration_seconds": 1783.0,
+      "duration_sec": 1783.0,
+      "duration_human": "29m 43s",
       "severity": "HIGH",
       "start_line": 1215,
       "end_line": 1216
@@ -1194,8 +1194,8 @@
       "type": "GAP",
       "gap_start": "2026-01-10T16:33:05",
       "gap_end": "2026-01-11T03:46:14",
-      "duration_human": "11:13:09",
-      "duration_seconds": 40389.0,
+      "duration_sec": 40389.0,
+      "duration_human": "11h 13m",
       "severity": "CRITICAL",
       "start_line": 1225,
       "end_line": 1226
@@ -1204,8 +1204,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T03:46:19",
       "gap_end": "2026-01-11T04:03:03",
-      "duration_human": "0:16:44",
-      "duration_seconds": 1004.0,
+      "duration_sec": 1004.0,
+      "duration_human": "16m 44s",
       "severity": "HIGH",
       "start_line": 1235,
       "end_line": 1236
@@ -1214,9 +1214,9 @@
       "type": "GAP",
       "gap_start": "2026-01-11T04:03:05",
       "gap_end": "2026-01-11T04:08:37",
-      "duration_human": "0:05:32",
-      "duration_seconds": 332.0,
-      "severity": "HIGH",
+      "duration_sec": 332.0,
+      "duration_human": "5m 32s",
+      "severity": "MEDIUM",
       "start_line": 1238,
       "end_line": 1239
     },
@@ -1224,8 +1224,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T04:08:38",
       "gap_end": "2026-01-11T11:33:13",
-      "duration_human": "7:24:35",
-      "duration_seconds": 26675.0,
+      "duration_sec": 26675.0,
+      "duration_human": "7h 24m",
       "severity": "CRITICAL",
       "start_line": 1240,
       "end_line": 1241
@@ -1234,8 +1234,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T11:33:17",
       "gap_end": "2026-01-11T17:58:16",
-      "duration_human": "6:24:59",
-      "duration_seconds": 23099.0,
+      "duration_sec": 23099.0,
+      "duration_human": "6h 24m",
       "severity": "CRITICAL",
       "start_line": 1243,
       "end_line": 1244
@@ -1244,8 +1244,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T17:58:23",
       "gap_end": "2026-01-12T04:03:40",
-      "duration_human": "10:05:17",
-      "duration_seconds": 36317.0,
+      "duration_sec": 36317.0,
+      "duration_human": "10h 5m",
       "severity": "CRITICAL",
       "start_line": 1253,
       "end_line": 1254
@@ -1254,9 +1254,9 @@
       "type": "GAP",
       "gap_start": "2026-01-12T04:03:42",
       "gap_end": "2026-01-12T04:09:49",
-      "duration_human": "0:06:07",
-      "duration_seconds": 367.0,
-      "severity": "HIGH",
+      "duration_sec": 367.0,
+      "duration_human": "6m 7s",
+      "severity": "MEDIUM",
       "start_line": 1256,
       "end_line": 1257
     },
@@ -1264,8 +1264,8 @@
       "type": "GAP",
       "gap_start": "2026-01-12T04:09:50",
       "gap_end": "2026-01-12T06:09:43",
-      "duration_human": "1:59:53",
-      "duration_seconds": 7193.0,
+      "duration_sec": 7193.0,
+      "duration_human": "1h 59m",
       "severity": "CRITICAL",
       "start_line": 1258,
       "end_line": 1259
@@ -1274,8 +1274,8 @@
       "type": "GAP",
       "gap_start": "2026-01-12T06:09:45",
       "gap_end": "2026-01-13T04:04:44",
-      "duration_human": "21:54:59",
-      "duration_seconds": 78899.0,
+      "duration_sec": 78899.0,
+      "duration_human": "21h 54m",
       "severity": "CRITICAL",
       "start_line": 1268,
       "end_line": 1269
@@ -1284,9 +1284,9 @@
       "type": "GAP",
       "gap_start": "2026-01-13T04:04:45",
       "gap_end": "2026-01-13T04:10:41",
-      "duration_human": "0:05:56",
-      "duration_seconds": 356.0,
-      "severity": "HIGH",
+      "duration_sec": 356.0,
+      "duration_human": "5m 56s",
+      "severity": "MEDIUM",
       "start_line": 1271,
       "end_line": 1272
     },
@@ -1294,8 +1294,8 @@
       "type": "GAP",
       "gap_start": "2026-01-13T04:10:41",
       "gap_end": "2026-01-13T17:22:28",
-      "duration_human": "13:11:47",
-      "duration_seconds": 47507.0,
+      "duration_sec": 47507.0,
+      "duration_human": "13h 11m",
       "severity": "CRITICAL",
       "start_line": 1273,
       "end_line": 1274
@@ -1304,9 +1304,9 @@
       "type": "REVERSED",
       "gap_start": "2026-01-13T17:22:29",
       "gap_end": "2026-01-04T04:08:24",
-      "duration_human": "-10 days, 10:45:55",
-      "duration_seconds": -825245.0,
-      "severity": "CRITICAL",
+      "duration_sec": -825245.0,
+      "duration_human": "229h 14m",
+      "severity": "REVERSED",
       "start_line": 1279,
       "end_line": 1280
     },
@@ -1314,9 +1314,9 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:08:25",
       "gap_end": "2026-01-04T04:14:38",
-      "duration_human": "0:06:13",
-      "duration_seconds": 373.0,
-      "severity": "HIGH",
+      "duration_sec": 373.0,
+      "duration_human": "6m 13s",
+      "severity": "MEDIUM",
       "start_line": 1282,
       "end_line": 1283
     },
@@ -1324,8 +1324,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:14:39",
       "gap_end": "2026-01-04T14:59:42",
-      "duration_human": "10:45:03",
-      "duration_seconds": 38703.0,
+      "duration_sec": 38703.0,
+      "duration_human": "10h 45m",
       "severity": "CRITICAL",
       "start_line": 1284,
       "end_line": 1285
@@ -1334,8 +1334,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T15:01:16",
       "gap_end": "2026-01-05T01:03:48",
-      "duration_human": "10:02:32",
-      "duration_seconds": 36152.0,
+      "duration_sec": 36152.0,
+      "duration_human": "10h 2m",
       "severity": "CRITICAL",
       "start_line": 1292,
       "end_line": 1293
@@ -1344,8 +1344,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T01:03:50",
       "gap_end": "2026-01-05T04:05:02",
-      "duration_human": "3:01:12",
-      "duration_seconds": 10872.0,
+      "duration_sec": 10872.0,
+      "duration_human": "3h 1m",
       "severity": "CRITICAL",
       "start_line": 1302,
       "end_line": 1303
@@ -1354,9 +1354,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:05:03",
       "gap_end": "2026-01-05T04:10:45",
-      "duration_human": "0:05:42",
-      "duration_seconds": 342.0,
-      "severity": "HIGH",
+      "duration_sec": 342.0,
+      "duration_human": "5m 42s",
+      "severity": "MEDIUM",
       "start_line": 1305,
       "end_line": 1306
     },
@@ -1364,8 +1364,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:10:46",
       "gap_end": "2026-01-05T23:42:43",
-      "duration_human": "19:31:57",
-      "duration_seconds": 70317.0,
+      "duration_sec": 70317.0,
+      "duration_human": "19h 31m",
       "severity": "CRITICAL",
       "start_line": 1307,
       "end_line": 1308
@@ -1374,8 +1374,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T23:42:44",
       "gap_end": "2026-01-06T04:07:32",
-      "duration_human": "4:24:48",
-      "duration_seconds": 15888.0,
+      "duration_sec": 15888.0,
+      "duration_human": "4h 24m",
       "severity": "CRITICAL",
       "start_line": 1329,
       "end_line": 1330
@@ -1384,9 +1384,9 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:07:34",
       "gap_end": "2026-01-06T04:13:59",
-      "duration_human": "0:06:25",
-      "duration_seconds": 385.0,
-      "severity": "HIGH",
+      "duration_sec": 385.0,
+      "duration_human": "6m 25s",
+      "severity": "MEDIUM",
       "start_line": 1332,
       "end_line": 1333
     },
@@ -1394,8 +1394,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:14:00",
       "gap_end": "2026-01-06T08:14:04",
-      "duration_human": "4:00:04",
-      "duration_seconds": 14404.0,
+      "duration_sec": 14404.0,
+      "duration_human": "4h 0m",
       "severity": "CRITICAL",
       "start_line": 1334,
       "end_line": 1335
@@ -1404,8 +1404,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T08:14:07",
       "gap_end": "2026-01-07T04:06:32",
-      "duration_human": "19:52:25",
-      "duration_seconds": 71545.0,
+      "duration_sec": 71545.0,
+      "duration_human": "19h 52m",
       "severity": "CRITICAL",
       "start_line": 1357,
       "end_line": 1358
@@ -1414,9 +1414,9 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:08:23",
       "gap_end": "2026-01-07T04:13:57",
-      "duration_human": "0:05:34",
-      "duration_seconds": 334.0,
-      "severity": "HIGH",
+      "duration_sec": 334.0,
+      "duration_human": "5m 34s",
+      "severity": "MEDIUM",
       "start_line": 1365,
       "end_line": 1366
     },
@@ -1424,8 +1424,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:13:58",
       "gap_end": "2026-01-07T06:13:37",
-      "duration_human": "1:59:39",
-      "duration_seconds": 7179.0,
+      "duration_sec": 7179.0,
+      "duration_human": "1h 59m",
       "severity": "CRITICAL",
       "start_line": 1367,
       "end_line": 1368
@@ -1434,8 +1434,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T06:14:36",
       "gap_end": "2026-01-07T08:06:12",
-      "duration_human": "1:51:36",
-      "duration_seconds": 6696.0,
+      "duration_sec": 6696.0,
+      "duration_human": "1h 51m",
       "severity": "CRITICAL",
       "start_line": 1397,
       "end_line": 1398
@@ -1444,8 +1444,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T08:06:14",
       "gap_end": "2026-01-07T09:44:07",
-      "duration_human": "1:37:53",
-      "duration_seconds": 5873.0,
+      "duration_sec": 5873.0,
+      "duration_human": "1h 37m",
       "severity": "CRITICAL",
       "start_line": 1420,
       "end_line": 1421
@@ -1454,8 +1454,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T09:44:07",
       "gap_end": "2026-01-07T10:45:07",
-      "duration_human": "1:01:00",
-      "duration_seconds": 3660.0,
+      "duration_sec": 3660.0,
+      "duration_human": "1h 1m",
       "severity": "CRITICAL",
       "start_line": 1429,
       "end_line": 1430
@@ -1464,8 +1464,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T10:45:07",
       "gap_end": "2026-01-07T12:30:35",
-      "duration_human": "1:45:28",
-      "duration_seconds": 6328.0,
+      "duration_sec": 6328.0,
+      "duration_human": "1h 45m",
       "severity": "CRITICAL",
       "start_line": 1432,
       "end_line": 1433
@@ -1474,8 +1474,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T12:31:04",
       "gap_end": "2026-01-07T14:02:39",
-      "duration_human": "1:31:35",
-      "duration_seconds": 5495.0,
+      "duration_sec": 5495.0,
+      "duration_human": "1h 31m",
       "severity": "CRITICAL",
       "start_line": 1455,
       "end_line": 1456
@@ -1484,8 +1484,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T14:03:05",
       "gap_end": "2026-01-07T15:09:15",
-      "duration_human": "1:06:10",
-      "duration_seconds": 3970.0,
+      "duration_sec": 3970.0,
+      "duration_human": "1h 6m",
       "severity": "CRITICAL",
       "start_line": 1478,
       "end_line": 1479
@@ -1494,8 +1494,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T15:09:17",
       "gap_end": "2026-01-07T21:23:20",
-      "duration_human": "6:14:03",
-      "duration_seconds": 22443.0,
+      "duration_sec": 22443.0,
+      "duration_human": "6h 14m",
       "severity": "CRITICAL",
       "start_line": 1501,
       "end_line": 1502
@@ -1504,8 +1504,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T21:23:24",
       "gap_end": "2026-01-07T23:21:50",
-      "duration_human": "1:58:26",
-      "duration_seconds": 7106.0,
+      "duration_sec": 7106.0,
+      "duration_human": "1h 58m",
       "severity": "CRITICAL",
       "start_line": 1524,
       "end_line": 1525
@@ -1514,8 +1514,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T23:21:54",
       "gap_end": "2026-01-08T03:26:48",
-      "duration_human": "4:04:54",
-      "duration_seconds": 14694.0,
+      "duration_sec": 14694.0,
+      "duration_human": "4h 4m",
       "severity": "CRITICAL",
       "start_line": 1547,
       "end_line": 1548
@@ -1524,8 +1524,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T03:26:49",
       "gap_end": "2026-01-08T04:03:24",
-      "duration_human": "0:36:35",
-      "duration_seconds": 2195.0,
+      "duration_sec": 2195.0,
+      "duration_human": "36m 35s",
       "severity": "HIGH",
       "start_line": 1568,
       "end_line": 1569
@@ -1534,9 +1534,9 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:03:25",
       "gap_end": "2026-01-08T04:09:29",
-      "duration_human": "0:06:04",
-      "duration_seconds": 364.0,
-      "severity": "HIGH",
+      "duration_sec": 364.0,
+      "duration_human": "6m 4s",
+      "severity": "MEDIUM",
       "start_line": 1571,
       "end_line": 1572
     },
@@ -1544,8 +1544,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T04:09:30",
       "gap_end": "2026-01-08T23:01:25",
-      "duration_human": "18:51:55",
-      "duration_seconds": 67915.0,
+      "duration_sec": 67915.0,
+      "duration_human": "18h 51m",
       "severity": "CRITICAL",
       "start_line": 1573,
       "end_line": 1574
@@ -1554,8 +1554,8 @@
       "type": "GAP",
       "gap_start": "2026-01-08T23:01:27",
       "gap_end": "2026-01-09T04:03:43",
-      "duration_human": "5:02:16",
-      "duration_seconds": 18136.0,
+      "duration_sec": 18136.0,
+      "duration_human": "5h 2m",
       "severity": "CRITICAL",
       "start_line": 1593,
       "end_line": 1594
@@ -1564,9 +1564,9 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:03:45",
       "gap_end": "2026-01-09T04:09:28",
-      "duration_human": "0:05:43",
-      "duration_seconds": 343.0,
-      "severity": "HIGH",
+      "duration_sec": 343.0,
+      "duration_human": "5m 43s",
+      "severity": "MEDIUM",
       "start_line": 1596,
       "end_line": 1597
     },
@@ -1574,8 +1574,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T04:09:29",
       "gap_end": "2026-01-09T07:35:41",
-      "duration_human": "3:26:12",
-      "duration_seconds": 12372.0,
+      "duration_sec": 12372.0,
+      "duration_human": "3h 26m",
       "severity": "CRITICAL",
       "start_line": 1598,
       "end_line": 1599
@@ -1584,8 +1584,8 @@
       "type": "GAP",
       "gap_start": "2026-01-09T07:35:41",
       "gap_end": "2026-01-11T04:05:02",
-      "duration_human": "1 day, 20:29:21",
-      "duration_seconds": 160161.0,
+      "duration_sec": 160161.0,
+      "duration_human": "44h 29m",
       "severity": "CRITICAL",
       "start_line": 1608,
       "end_line": 1609
@@ -1594,9 +1594,9 @@
       "type": "GAP",
       "gap_start": "2026-01-11T04:05:04",
       "gap_end": "2026-01-11T04:11:27",
-      "duration_human": "0:06:23",
-      "duration_seconds": 383.0,
-      "severity": "HIGH",
+      "duration_sec": 383.0,
+      "duration_human": "6m 23s",
+      "severity": "MEDIUM",
       "start_line": 1611,
       "end_line": 1612
     },
@@ -1604,8 +1604,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T04:11:28",
       "gap_end": "2026-01-11T23:37:40",
-      "duration_human": "19:26:12",
-      "duration_seconds": 69972.0,
+      "duration_sec": 69972.0,
+      "duration_human": "19h 26m",
       "severity": "CRITICAL",
       "start_line": 1613,
       "end_line": 1614
@@ -1614,9 +1614,9 @@
       "type": "REVERSED",
       "gap_start": "2026-01-11T23:37:46",
       "gap_end": "2026-01-11T01:30:45",
-      "duration_human": "-1 day, 1:52:59",
-      "duration_seconds": -79621.0,
-      "severity": "CRITICAL",
+      "duration_sec": -79621.0,
+      "duration_human": "22h 7m",
+      "severity": "REVERSED",
       "start_line": 1623,
       "end_line": 1624
     },
@@ -1624,8 +1624,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T01:30:50",
       "gap_end": "2026-01-11T04:11:26",
-      "duration_human": "2:40:36",
-      "duration_seconds": 9636.0,
+      "duration_sec": 9636.0,
+      "duration_human": "2h 40m",
       "severity": "CRITICAL",
       "start_line": 1627,
       "end_line": 1628
@@ -1634,9 +1634,9 @@
       "type": "GAP",
       "gap_start": "2026-01-11T04:11:28",
       "gap_end": "2026-01-11T04:16:55",
-      "duration_human": "0:05:27",
-      "duration_seconds": 327.0,
-      "severity": "HIGH",
+      "duration_sec": 327.0,
+      "duration_human": "5m 27s",
+      "severity": "MEDIUM",
       "start_line": 1630,
       "end_line": 1631
     },
@@ -1644,8 +1644,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T04:16:55",
       "gap_end": "2026-01-11T09:04:41",
-      "duration_human": "4:47:46",
-      "duration_seconds": 17266.0,
+      "duration_sec": 17266.0,
+      "duration_human": "4h 47m",
       "severity": "CRITICAL",
       "start_line": 1632,
       "end_line": 1633
@@ -1654,8 +1654,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T09:04:43",
       "gap_end": "2026-01-11T15:18:30",
-      "duration_human": "6:13:47",
-      "duration_seconds": 22427.0,
+      "duration_sec": 22427.0,
+      "duration_human": "6h 13m",
       "severity": "CRITICAL",
       "start_line": 1655,
       "end_line": 1656
@@ -1664,8 +1664,8 @@
       "type": "GAP",
       "gap_start": "2026-01-11T15:18:30",
       "gap_end": "2026-01-12T04:07:46",
-      "duration_human": "12:49:16",
-      "duration_seconds": 46156.0,
+      "duration_sec": 46156.0,
+      "duration_human": "12h 49m",
       "severity": "CRITICAL",
       "start_line": 1657,
       "end_line": 1658
@@ -1674,9 +1674,9 @@
       "type": "GAP",
       "gap_start": "2026-01-12T04:07:47",
       "gap_end": "2026-01-12T04:15:14",
-      "duration_human": "0:07:27",
-      "duration_seconds": 447.0,
-      "severity": "HIGH",
+      "duration_sec": 447.0,
+      "duration_human": "7m 27s",
+      "severity": "MEDIUM",
       "start_line": 1660,
       "end_line": 1661
     },
@@ -1684,8 +1684,8 @@
       "type": "GAP",
       "gap_start": "2026-01-12T04:15:14",
       "gap_end": "2026-01-12T09:27:24",
-      "duration_human": "5:12:10",
-      "duration_seconds": 18730.0,
+      "duration_sec": 18730.0,
+      "duration_human": "5h 12m",
       "severity": "CRITICAL",
       "start_line": 1662,
       "end_line": 1663
@@ -1694,8 +1694,8 @@
       "type": "GAP",
       "gap_start": "2026-01-12T09:27:24",
       "gap_end": "2026-01-12T19:29:09",
-      "duration_human": "10:01:45",
-      "duration_seconds": 36105.0,
+      "duration_sec": 36105.0,
+      "duration_human": "10h 1m",
       "severity": "CRITICAL",
       "start_line": 1685,
       "end_line": 1686
@@ -1704,8 +1704,8 @@
       "type": "GAP",
       "gap_start": "2026-01-12T19:29:10",
       "gap_end": "2026-01-13T04:09:35",
-      "duration_human": "8:40:25",
-      "duration_seconds": 31225.0,
+      "duration_sec": 31225.0,
+      "duration_human": "8h 40m",
       "severity": "CRITICAL",
       "start_line": 1708,
       "end_line": 1709
@@ -1714,9 +1714,9 @@
       "type": "GAP",
       "gap_start": "2026-01-13T04:09:37",
       "gap_end": "2026-01-13T04:15:13",
-      "duration_human": "0:05:36",
-      "duration_seconds": 336.0,
-      "severity": "HIGH",
+      "duration_sec": 336.0,
+      "duration_human": "5m 36s",
+      "severity": "MEDIUM",
       "start_line": 1711,
       "end_line": 1712
     },
@@ -1724,8 +1724,8 @@
       "type": "GAP",
       "gap_start": "2026-01-13T04:15:13",
       "gap_end": "2026-01-13T11:46:41",
-      "duration_human": "7:31:28",
-      "duration_seconds": 27088.0,
+      "duration_sec": 27088.0,
+      "duration_human": "7h 31m",
       "severity": "CRITICAL",
       "start_line": 1713,
       "end_line": 1714
@@ -1734,8 +1734,8 @@
       "type": "GAP",
       "gap_start": "2026-01-13T11:46:41",
       "gap_end": "2026-01-13T20:04:41",
-      "duration_human": "8:18:00",
-      "duration_seconds": 29880.0,
+      "duration_sec": 29880.0,
+      "duration_human": "8h 18m",
       "severity": "CRITICAL",
       "start_line": 1714,
       "end_line": 1715
@@ -1744,9 +1744,9 @@
       "type": "REVERSED",
       "gap_start": "2026-01-13T20:04:42",
       "gap_end": "2026-01-04T02:38:22",
-      "duration_human": "-10 days, 6:33:40",
-      "duration_seconds": -840380.0,
-      "severity": "CRITICAL",
+      "duration_sec": -840380.0,
+      "duration_human": "233h 26m",
+      "severity": "REVERSED",
       "start_line": 1724,
       "end_line": 1725
     },
@@ -1754,8 +1754,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T02:38:23",
       "gap_end": "2026-01-04T04:20:19",
-      "duration_human": "1:41:56",
-      "duration_seconds": 6116.0,
+      "duration_sec": 6116.0,
+      "duration_human": "1h 41m",
       "severity": "CRITICAL",
       "start_line": 1749,
       "end_line": 1750
@@ -1764,8 +1764,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:20:42",
       "gap_end": "2026-01-04T04:33:57",
-      "duration_human": "0:13:15",
-      "duration_seconds": 795.0,
+      "duration_sec": 795.0,
+      "duration_human": "13m 15s",
       "severity": "HIGH",
       "start_line": 1755,
       "end_line": 1756
@@ -1774,8 +1774,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T04:33:58",
       "gap_end": "2026-01-04T08:31:57",
-      "duration_human": "3:57:59",
-      "duration_seconds": 14279.0,
+      "duration_sec": 14279.0,
+      "duration_human": "3h 57m",
       "severity": "CRITICAL",
       "start_line": 1757,
       "end_line": 1758
@@ -1784,8 +1784,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T08:31:59",
       "gap_end": "2026-01-04T13:46:32",
-      "duration_human": "5:14:33",
-      "duration_seconds": 18873.0,
+      "duration_sec": 18873.0,
+      "duration_human": "5h 14m",
       "severity": "CRITICAL",
       "start_line": 1762,
       "end_line": 1763
@@ -1794,8 +1794,8 @@
       "type": "GAP",
       "gap_start": "2026-01-04T13:46:35",
       "gap_end": "2026-01-05T04:03:58",
-      "duration_human": "14:17:23",
-      "duration_seconds": 51443.0,
+      "duration_sec": 51443.0,
+      "duration_human": "14h 17m",
       "severity": "CRITICAL",
       "start_line": 1781,
       "end_line": 1782
@@ -1804,9 +1804,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:04:00",
       "gap_end": "2026-01-05T04:09:32",
-      "duration_human": "0:05:32",
-      "duration_seconds": 332.0,
-      "severity": "HIGH",
+      "duration_sec": 332.0,
+      "duration_human": "5m 32s",
+      "severity": "MEDIUM",
       "start_line": 1784,
       "end_line": 1785
     },
@@ -1814,8 +1814,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T04:09:33",
       "gap_end": "2026-01-05T06:39:18",
-      "duration_human": "2:29:45",
-      "duration_seconds": 8985.0,
+      "duration_sec": 8985.0,
+      "duration_human": "2h 29m",
       "severity": "CRITICAL",
       "start_line": 1786,
       "end_line": 1787
@@ -1824,8 +1824,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T06:39:18",
       "gap_end": "2026-01-05T12:09:06",
-      "duration_human": "5:29:48",
-      "duration_seconds": 19788.0,
+      "duration_sec": 19788.0,
+      "duration_human": "5h 29m",
       "severity": "CRITICAL",
       "start_line": 1809,
       "end_line": 1810
@@ -1834,9 +1834,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T12:09:06",
       "gap_end": "2026-01-05T12:18:50",
-      "duration_human": "0:09:44",
-      "duration_seconds": 584.0,
-      "severity": "HIGH",
+      "duration_sec": 584.0,
+      "duration_human": "9m 44s",
+      "severity": "MEDIUM",
       "start_line": 1810,
       "end_line": 1811
     },
@@ -1844,9 +1844,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T12:18:50",
       "gap_end": "2026-01-05T12:27:05",
-      "duration_human": "0:08:15",
-      "duration_seconds": 495.0,
-      "severity": "HIGH",
+      "duration_sec": 495.0,
+      "duration_human": "8m 15s",
+      "severity": "MEDIUM",
       "start_line": 1811,
       "end_line": 1812
     },
@@ -1854,9 +1854,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T12:27:05",
       "gap_end": "2026-01-05T12:35:24",
-      "duration_human": "0:08:19",
-      "duration_seconds": 499.0,
-      "severity": "HIGH",
+      "duration_sec": 499.0,
+      "duration_human": "8m 19s",
+      "severity": "MEDIUM",
       "start_line": 1812,
       "end_line": 1813
     },
@@ -1864,8 +1864,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T12:35:24",
       "gap_end": "2026-01-05T12:54:46",
-      "duration_human": "0:19:22",
-      "duration_seconds": 1162.0,
+      "duration_sec": 1162.0,
+      "duration_human": "19m 22s",
       "severity": "HIGH",
       "start_line": 1813,
       "end_line": 1814
@@ -1874,8 +1874,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T12:54:46",
       "gap_end": "2026-01-05T13:33:41",
-      "duration_human": "0:38:55",
-      "duration_seconds": 2335.0,
+      "duration_sec": 2335.0,
+      "duration_human": "38m 55s",
       "severity": "HIGH",
       "start_line": 1814,
       "end_line": 1815
@@ -1884,9 +1884,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T13:33:41",
       "gap_end": "2026-01-05T13:41:34",
-      "duration_human": "0:07:53",
-      "duration_seconds": 473.0,
-      "severity": "HIGH",
+      "duration_sec": 473.0,
+      "duration_human": "7m 53s",
+      "severity": "MEDIUM",
       "start_line": 1815,
       "end_line": 1816
     },
@@ -1894,9 +1894,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T13:41:34",
       "gap_end": "2026-01-05T13:50:24",
-      "duration_human": "0:08:50",
-      "duration_seconds": 530.0,
-      "severity": "HIGH",
+      "duration_sec": 530.0,
+      "duration_human": "8m 50s",
+      "severity": "MEDIUM",
       "start_line": 1816,
       "end_line": 1817
     },
@@ -1904,9 +1904,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T13:50:24",
       "gap_end": "2026-01-05T14:00:03",
-      "duration_human": "0:09:39",
-      "duration_seconds": 579.0,
-      "severity": "HIGH",
+      "duration_sec": 579.0,
+      "duration_human": "9m 39s",
+      "severity": "MEDIUM",
       "start_line": 1817,
       "end_line": 1818
     },
@@ -1914,9 +1914,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:00:03",
       "gap_end": "2026-01-05T14:08:28",
-      "duration_human": "0:08:25",
-      "duration_seconds": 505.0,
-      "severity": "HIGH",
+      "duration_sec": 505.0,
+      "duration_human": "8m 25s",
+      "severity": "MEDIUM",
       "start_line": 1818,
       "end_line": 1819
     },
@@ -1924,9 +1924,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:08:28",
       "gap_end": "2026-01-05T14:17:19",
-      "duration_human": "0:08:51",
-      "duration_seconds": 531.0,
-      "severity": "HIGH",
+      "duration_sec": 531.0,
+      "duration_human": "8m 51s",
+      "severity": "MEDIUM",
       "start_line": 1819,
       "end_line": 1820
     },
@@ -1934,8 +1934,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:17:19",
       "gap_end": "2026-01-05T14:33:46",
-      "duration_human": "0:16:27",
-      "duration_seconds": 987.0,
+      "duration_sec": 987.0,
+      "duration_human": "16m 27s",
       "severity": "HIGH",
       "start_line": 1820,
       "end_line": 1821
@@ -1944,8 +1944,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:33:46",
       "gap_end": "2026-01-05T14:48:30",
-      "duration_human": "0:14:44",
-      "duration_seconds": 884.0,
+      "duration_sec": 884.0,
+      "duration_human": "14m 44s",
       "severity": "HIGH",
       "start_line": 1821,
       "end_line": 1822
@@ -1954,9 +1954,9 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:48:30",
       "gap_end": "2026-01-05T14:56:13",
-      "duration_human": "0:07:43",
-      "duration_seconds": 463.0,
-      "severity": "HIGH",
+      "duration_sec": 463.0,
+      "duration_human": "7m 43s",
+      "severity": "MEDIUM",
       "start_line": 1822,
       "end_line": 1823
     },
@@ -1964,8 +1964,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T14:56:13",
       "gap_end": "2026-01-05T15:50:04",
-      "duration_human": "0:53:51",
-      "duration_seconds": 3231.0,
+      "duration_sec": 3231.0,
+      "duration_human": "53m 51s",
       "severity": "HIGH",
       "start_line": 1823,
       "end_line": 1824
@@ -1974,8 +1974,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T15:50:04",
       "gap_end": "2026-01-05T16:29:20",
-      "duration_human": "0:39:16",
-      "duration_seconds": 2356.0,
+      "duration_sec": 2356.0,
+      "duration_human": "39m 16s",
       "severity": "HIGH",
       "start_line": 1824,
       "end_line": 1825
@@ -1984,8 +1984,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T16:29:20",
       "gap_end": "2026-01-05T23:23:13",
-      "duration_human": "6:53:53",
-      "duration_seconds": 24833.0,
+      "duration_sec": 24833.0,
+      "duration_human": "6h 53m",
       "severity": "CRITICAL",
       "start_line": 1825,
       "end_line": 1826
@@ -1994,8 +1994,8 @@
       "type": "GAP",
       "gap_start": "2026-01-05T23:24:09",
       "gap_end": "2026-01-06T04:05:22",
-      "duration_human": "4:41:13",
-      "duration_seconds": 16873.0,
+      "duration_sec": 16873.0,
+      "duration_human": "4h 41m",
       "severity": "CRITICAL",
       "start_line": 1850,
       "end_line": 1851
@@ -2004,9 +2004,9 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:05:24",
       "gap_end": "2026-01-06T04:11:23",
-      "duration_human": "0:05:59",
-      "duration_seconds": 359.0,
-      "severity": "HIGH",
+      "duration_sec": 359.0,
+      "duration_human": "5m 59s",
+      "severity": "MEDIUM",
       "start_line": 1853,
       "end_line": 1854
     },
@@ -2014,8 +2014,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T04:11:23",
       "gap_end": "2026-01-06T05:47:42",
-      "duration_human": "1:36:19",
-      "duration_seconds": 5779.0,
+      "duration_sec": 5779.0,
+      "duration_human": "1h 36m",
       "severity": "CRITICAL",
       "start_line": 1855,
       "end_line": 1856
@@ -2024,8 +2024,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T05:47:51",
       "gap_end": "2026-01-06T07:02:27",
-      "duration_human": "1:14:36",
-      "duration_seconds": 4476.0,
+      "duration_sec": 4476.0,
+      "duration_human": "1h 14m",
       "severity": "CRITICAL",
       "start_line": 1878,
       "end_line": 1879
@@ -2034,8 +2034,8 @@
       "type": "GAP",
       "gap_start": "2026-01-06T07:04:12",
       "gap_end": "2026-01-07T04:16:07",
-      "duration_human": "21:11:55",
-      "duration_seconds": 76315.0,
+      "duration_sec": 76315.0,
+      "duration_human": "21h 11m",
       "severity": "CRITICAL",
       "start_line": 1901,
       "end_line": 1902
@@ -2044,9 +2044,9 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:16:09",
       "gap_end": "2026-01-07T04:21:39",
-      "duration_human": "0:05:30",
-      "duration_seconds": 330.0,
-      "severity": "HIGH",
+      "duration_sec": 330.0,
+      "duration_human": "5m 30s",
+      "severity": "MEDIUM",
       "start_line": 1904,
       "end_line": 1905
     },
@@ -2054,8 +2054,8 @@
       "type": "GAP",
       "gap_start": "2026-01-07T04:21:40",
       "gap_end": "2026-01-07T10:59:53",
-      "duration_human": "6:38:13",
-      "duration_seconds": 23893.0,
+      "duration_sec": 23893.0,
+      "duration_human": "6h 38m",
       "severity": "CRITICAL",
       "start_line": 1906,
       "end_line": 1907
@@ -2064,636 +2064,561 @@
       "type": "GAP",
       "gap_start": "2026-01-07T10:59:53",
       "gap_end": "2026-01-07T14:41:57",
-      "duration_human": "3:42:04",
-      "duration_seconds": 13324.0,
+      "duration_sec": 13324.0,
+      "duration_human": "3h 42m",
       "severity": "CRITICAL",
       "start_line": 1907,
       "end_line": 1908
+    },
+    {
+      "type": "REVERSED",
+      "gap_start": "2026-01-07T14:41:59",
+      "gap_end": "2026-01-07T14:41:54",
+      "duration_sec": -5.0,
+      "duration_human": "5s",
+      "severity": "REVERSED",
+      "start_line": 1982,
+      "end_line": 1983
+    },
+    {
+      "type": "REVERSED",
+      "gap_start": "2026-01-07T14:41:59",
+      "gap_end": "2026-01-07T14:41:54",
+      "duration_sec": -5.0,
+      "duration_human": "5s",
+      "severity": "REVERSED",
+      "start_line": 1986,
+      "end_line": 1987
+    },
+    {
+      "type": "REVERSED",
+      "gap_start": "2026-01-07T14:41:59",
+      "gap_end": "2026-01-07T14:41:54",
+      "duration_sec": -5.0,
+      "duration_human": "5s",
+      "severity": "REVERSED",
+      "start_line": 1990,
+      "end_line": 1991
     }
   ],
   "threats": [
     {
       "ip": "218.188.2.4",
       "risk_tags": [
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 14,
-      "span": "20:57:19",
-      "sessions": [
-        {
-          "start": "2026-01-04 15:16:01",
-          "end": "2026-01-04 15:16:02",
-          "events": 2,
-          "duration_s": 1
-        },
-        {
-          "start": "2026-01-05 12:12:34",
-          "end": "2026-01-05 12:13:20",
-          "events": 12,
-          "duration_s": 46
-        }
-      ],
-      "session_count": 2,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "20h 57m",
+      "last_active": "2026-01-05T12:13:20"
     },
     {
       "ip": "211.46.224.253",
       "risk_tags": [
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 1,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-07 19:43:13",
-          "end": "2026-01-07 19:43:13",
-          "events": 1,
-          "duration_s": 0
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-07T19:43:13"
+    },
+    {
+      "ip": "82.252.162.81",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 22,
+      "failed_attempts": 0,
+      "off_hours_ratio": "68.2%",
+      "span_human": "5h 13m",
+      "last_active": "2026-01-08T02:08:12"
     },
     {
       "ip": "217.60.212.66",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 6,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-01 08:56:36",
-          "end": "2026-01-01 08:56:36",
-          "events": 6,
-          "duration_s": 0
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-01T08:56:36"
+    },
+    {
+      "ip": "210.245.165.136",
+      "risk_tags": [
+        "PERSISTENT_ACTOR"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 32,
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "116h 27m",
+      "last_active": "2026-01-07T09:44:07"
     },
     {
       "ip": "209.152.168.249",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 10,
-      "span": "0:00:03",
-      "sessions": [
-        {
-          "start": "2026-01-03 01:41:29",
-          "end": "2026-01-03 01:41:32",
-          "events": 10,
-          "duration_s": 3
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "3s",
+      "last_active": "2026-01-03T01:41:32"
     },
     {
       "ip": "200.60.37.201",
       "risk_tags": [
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 1,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-03 02:55:14",
-          "end": "2026-01-03 02:55:14",
-          "events": 1,
-          "duration_s": 0
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-03T02:55:14"
     },
     {
       "ip": "218.22.3.51",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 9,
-      "span": "0:00:02",
-      "sessions": [
-        {
-          "start": "2026-01-03 23:30:03",
-          "end": "2026-01-03 23:30:05",
-          "events": 9,
-          "duration_s": 2
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "2s",
+      "last_active": "2026-01-03T23:30:05"
+    },
+    {
+      "ip": "211.167.68.59",
+      "risk_tags": [
+        "PERSISTENT_ACTOR"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 31,
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "88h 51m",
+      "last_active": "2026-01-09T12:16:52"
     },
     {
       "ip": "61.53.154.93",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 9,
-      "span": "0:00:06",
-      "sessions": [
-        {
-          "start": "2026-01-08 08:10:24",
-          "end": "2026-01-08 08:10:30",
-          "events": 9,
-          "duration_s": 6
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "6s",
+      "last_active": "2026-01-08T08:10:30"
     },
     {
       "ip": "211.115.206.155",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 5,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-08 21:42:46",
-          "end": "2026-01-08 21:42:46",
-          "events": 5,
-          "duration_s": 0
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-08T21:42:46"
+    },
+    {
+      "ip": "61.74.96.178",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 23,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "1s",
+      "last_active": "2026-01-09T03:22:23"
     },
     {
       "ip": "60.30.224.116",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 20,
-      "span": "-1 day, 5:18:35",
-      "sessions": [
-        {
-          "start": "2026-01-10 00:21:28",
-          "end": "2026-01-10 00:21:35",
-          "events": 10,
-          "duration_s": 7
-        },
-        {
-          "start": "2026-01-10 19:03:00",
-          "end": "2026-01-10 19:03:07",
-          "events": 10,
-          "duration_s": 7
-        }
-      ],
-      "session_count": 2,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "50.0%",
+      "span_human": "18h 41m",
+      "last_active": "2026-01-10T00:21:35"
     },
     {
       "ip": "195.129.24.210",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 15,
-      "span": "-1 day, 14:40:27",
-      "sessions": [
-        {
-          "start": "2026-01-10 10:56:41",
-          "end": "2026-01-10 10:56:44",
-          "events": 10,
-          "duration_s": 3
-        },
-        {
-          "start": "2026-01-10 20:16:17",
-          "end": "2026-01-10 20:16:30",
-          "events": 5,
-          "duration_s": 13
-        }
-      ],
-      "session_count": 2,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "9h 19m",
+      "last_active": "2026-01-10T10:56:44"
     },
     {
       "ip": "163.27.187.39",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
+        "BRUTE_FORCE_TARGET",
         "FAILED_LOGIN"
       ],
       "hits": 23,
-      "span": "0:00:02",
-      "sessions": [
-        {
-          "start": "2026-01-10 20:53:04",
-          "end": "2026-01-10 20:53:06",
-          "events": 23,
-          "duration_s": 2
-        }
+      "failed_attempts": 23,
+      "off_hours_ratio": "0.0%",
+      "span_human": "2s",
+      "last_active": "2026-01-10T20:53:06"
+    },
+    {
+      "ip": "203.101.45.59",
+      "risk_tags": [
+        "PERSISTENT_ACTOR"
       ],
-      "session_count": 1,
-      "kill_chain_score": 1,
-      "is_ioc": false
+      "hits": 46,
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "101h 3m",
+      "last_active": "2026-01-07T15:09:17"
+    },
+    {
+      "ip": "62.99.164.82",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
+      ],
+      "hits": 23,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-03T23:16:09"
     },
     {
       "ip": "210.76.59.29",
       "risk_tags": [
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PERSISTENT_ACTOR",
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 7,
-      "span": "6 days, 15:57:41",
-      "sessions": [
-        {
-          "start": "2026-01-04 09:33:09",
-          "end": "2026-01-04 09:33:14",
-          "events": 3,
-          "duration_s": 5
-        },
-        {
-          "start": "2026-01-11 01:30:45",
-          "end": "2026-01-11 01:30:50",
-          "events": 4,
-          "duration_s": 5
-        }
-      ],
-      "session_count": 2,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "57.1%",
+      "span_human": "159h 57m",
+      "last_active": "2026-01-11T01:30:50"
     },
     {
       "ip": "220.117.241.87",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 13,
-      "span": "0:00:13",
-      "sessions": [
-        {
-          "start": "2026-01-04 19:15:48",
-          "end": "2026-01-04 19:16:01",
-          "events": 13,
-          "duration_s": 13
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "13s",
+      "last_active": "2026-01-04T19:16:01"
     },
     {
       "ip": "210.229.150.228",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 5,
-      "span": "0:00:09",
-      "sessions": [
-        {
-          "start": "2026-01-05 13:36:28",
-          "end": "2026-01-05 13:36:37",
-          "events": 5,
-          "duration_s": 9
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "9s",
+      "last_active": "2026-01-05T13:36:37"
     },
     {
       "ip": "218.16.122.48",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 5,
-      "span": "0:00:02",
-      "sessions": [
-        {
-          "start": "2026-01-06 02:22:31",
-          "end": "2026-01-06 02:22:33",
-          "events": 5,
-          "duration_s": 2
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "2s",
+      "last_active": "2026-01-06T02:22:33"
+    },
+    {
+      "ip": "211.72.151.162",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 44,
+      "failed_attempts": 0,
+      "off_hours_ratio": "47.7%",
+      "span_human": "33h 25m",
+      "last_active": "2026-01-08T03:26:49"
+    },
+    {
+      "ip": "221.4.102.93",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
+      ],
+      "hits": 19,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "5s",
+      "last_active": "2026-01-07T23:09:50"
     },
     {
       "ip": "212.0.132.20",
       "risk_tags": [
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 4,
-      "span": "0:00:01",
-      "sessions": [
-        {
-          "start": "2026-01-08 20:14:55",
-          "end": "2026-01-08 20:14:56",
-          "events": 4,
-          "duration_s": 1
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "1s",
+      "last_active": "2026-01-08T20:14:56"
+    },
+    {
+      "ip": "206.196.21.129",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 23,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "3s",
+      "last_active": "2026-01-09T22:53:22"
+    },
+    {
+      "ip": "217.187.83.139",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
+      ],
+      "hits": 23,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-10T03:55:15"
     },
     {
       "ip": "150.183.249.110",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 80,
-      "span": "0:01:35",
-      "sessions": [
-        {
-          "start": "2026-01-10 16:01:43",
-          "end": "2026-01-10 16:03:18",
-          "events": 80,
-          "duration_s": 95
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "1m 35s",
+      "last_active": "2026-01-10T16:03:18"
     },
     {
       "ip": "211.214.161.141",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 10,
-      "span": "0:00:04",
-      "sessions": [
-        {
-          "start": "2026-01-10 16:33:01",
-          "end": "2026-01-10 16:33:05",
-          "events": 10,
-          "duration_s": 4
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "4s",
+      "last_active": "2026-01-10T16:33:05"
     },
     {
       "ip": "82.77.200.128",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 10,
-      "span": "0:00:05",
-      "sessions": [
-        {
-          "start": "2026-01-11 03:46:14",
-          "end": "2026-01-11 03:46:19",
-          "events": 10,
-          "duration_s": 5
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "5s",
+      "last_active": "2026-01-11T03:46:19"
     },
     {
       "ip": "211.137.205.253",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 10,
-      "span": "0:00:07",
-      "sessions": [
-        {
-          "start": "2026-01-11 17:58:16",
-          "end": "2026-01-11 17:58:23",
-          "events": 10,
-          "duration_s": 7
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "7s",
+      "last_active": "2026-01-11T17:58:23"
     },
     {
       "ip": "68.143.156.89",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 10,
-      "span": "0:00:02",
-      "sessions": [
-        {
-          "start": "2026-01-12 06:09:43",
-          "end": "2026-01-12 06:09:45",
-          "events": 10,
-          "duration_s": 2
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "2s",
+      "last_active": "2026-01-12T06:09:45"
+    },
+    {
+      "ip": "211.107.232.1",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 41,
+      "failed_attempts": 0,
+      "off_hours_ratio": "53.7%",
+      "span_human": "33h 56m",
+      "last_active": "2026-01-04T13:46:35"
+    },
+    {
+      "ip": "83.116.207.11",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
+      ],
+      "hits": 32,
+      "failed_attempts": 0,
+      "off_hours_ratio": "6.2%",
+      "span_human": "2h 8m",
+      "last_active": "2026-01-07T06:14:36"
+    },
+    {
+      "ip": "82.68.222.195",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
+      ],
+      "hits": 23,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "4s",
+      "last_active": "2026-01-07T23:21:54"
     },
     {
       "ip": "202.181.236.180",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 10,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-09 07:35:41",
-          "end": "2026-01-09 07:35:41",
-          "events": 10,
-          "duration_s": 0
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-09T07:35:41"
     },
     {
       "ip": "218.55.234.102",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
-        "PRIV_ESCALATION"
+        "PRIV_ESCALATION",
+        "SUSPICIOUS_TIMING"
       ],
       "hits": 5,
-      "span": "0:00:06",
-      "sessions": [
-        {
-          "start": "2026-01-11 23:37:40",
-          "end": "2026-01-11 23:37:46",
-          "events": 5,
-          "duration_s": 6
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "6s",
+      "last_active": "2026-01-11T23:37:46"
     },
     {
       "ip": "193.110.106.11",
       "risk_tags": [
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 2,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-11 15:18:30",
-          "end": "2026-01-11 15:18:30",
-          "events": 2,
-          "duration_s": 0
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-11T15:18:30"
     },
     {
       "ip": "85.44.47.166",
       "risk_tags": [
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 1,
-      "span": "0:00:00",
-      "sessions": [
-        {
-          "start": "2026-01-13 11:46:41",
-          "end": "2026-01-13 11:46:41",
-          "events": 1,
-          "duration_s": 0
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-13T11:46:41"
     },
     {
       "ip": "211.9.58.217",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 10,
-      "span": "0:00:01",
-      "sessions": [
-        {
-          "start": "2026-01-13 20:04:41",
-          "end": "2026-01-13 20:04:42",
-          "events": 10,
-          "duration_s": 1
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "1s",
+      "last_active": "2026-01-13T20:04:42"
+    },
+    {
+      "ip": "84.102.20.2",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 25,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "1s",
+      "last_active": "2026-01-04T02:38:23"
     },
     {
       "ip": "203.251.225.101",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 5,
-      "span": "0:00:02",
-      "sessions": [
-        {
-          "start": "2026-01-04 08:31:57",
-          "end": "2026-01-04 08:31:59",
-          "events": 5,
-          "duration_s": 2
-        }
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "2s",
+      "last_active": "2026-01-04T08:31:59"
+    },
+    {
+      "ip": "217.187.83.50",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
       ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "hits": 19,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "0s",
+      "last_active": "2026-01-05T23:24:09"
+    },
+    {
+      "ip": "172.181.208.156",
+      "risk_tags": [
+        "SUSPICIOUS_TIMING"
+      ],
+      "hits": 23,
+      "failed_attempts": 0,
+      "off_hours_ratio": "100.0%",
+      "span_human": "9s",
+      "last_active": "2026-01-06T05:47:51"
     },
     {
       "ip": "207.243.167.114",
       "risk_tags": [
-        "BRUTE_FORCE_BURST",
-        "FAILED_LOGIN",
         "PRIV_ESCALATION"
       ],
       "hits": 23,
-      "span": "0:01:45",
-      "sessions": [
-        {
-          "start": "2026-01-06 07:02:27",
-          "end": "2026-01-06 07:04:12",
-          "events": 23,
-          "duration_s": 105
-        }
-      ],
-      "session_count": 1,
-      "kill_chain_score": 2,
-      "is_ioc": false
+      "failed_attempts": 0,
+      "off_hours_ratio": "0.0%",
+      "span_human": "1m 45s",
+      "last_active": "2026-01-06T07:04:12"
     }
   ],
+  "system_info": {
+    "os_type": "Linux",
+    "os_release": "6.18.12+kali-amd64",
+    "hostname": "kali",
+    "scan_timestamp": "2026-04-11T17:19:38.064542"
+  },
+  "file_info": {
+    "filename": "linux.log",
+    "size_bytes": 214486,
+    "modified_at": "2026-04-11T12:44:25.701342"
+  },
   "performance": {
-    "time": 0.11,
-    "lps": 18112
+    "processing_time_sec": 0.0331,
+    "lines_per_sec": 60346.66
   },
   "stats": {
-    "total": 2000,
-    "parsed": 1962,
-    "skipped": 38,
-    "obfuscated": 0,
     "log_type": "Linux Syslog",
-    "rare_templates": 103,
-    "distributed_windows": 3
-  },
-  "entropy_baseline": {
-    "mean": 4.704,
-    "std": 0.263,
-    "threshold": 5.23
-  },
-  "compare": null
+    "total_lines": 2000,
+    "parsed_lines": 1962,
+    "skipped_lines": 38,
+    "log_span_sec": 257159.0,
+    "first_ts": "2026-01-04T15:16:01",
+    "last_ts": "2026-01-07T14:42:00"
+  }
 }
