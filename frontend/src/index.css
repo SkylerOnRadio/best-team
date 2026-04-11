@@ -46,3 +46,29 @@ body {
 .font-display {
   font-family: "Space Grotesk", "Manrope", system-ui, sans-serif;
 }
+
+.section-reveal {
+  opacity: 0;
+  transform: translateY(22px) scale(0.99);
+  filter: saturate(0.9);
+  transition:
+    opacity 520ms ease,
+    transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 520ms ease;
+}
+
+.section-reveal--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: saturate(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-reveal,
+  .section-reveal--visible {
+    transition: none;
+    transform: none;
+    opacity: 1;
+    filter: none;
+  }
+}
