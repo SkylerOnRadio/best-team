@@ -6,24 +6,23 @@ import logging
 import threading
 import tempfile
 import re
-from typing import Optional
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
-# Import the core analysis functions from your log.py file
-from log import scan_log, _risk_score, report_terminal
+# Import the core analysis and report writer functions from log.py
+from log import (
+    scan_log,
+    _risk_score,
+    report_terminal,
+    report_csv_integrity,
+    report_csv_behavioral,
+    report_html,
+)
 
 # --- CONFIGURATION ---
-# Path to the log checker script used by the dashboard
-CHECKER_SCRIPT_PATH = "./log.py"
-# The log file to monitor
-TARGET_LOG_FILE = "sample.log"
-# Temporary location for the generated report
-TEMP_REPORT_JSON = "latest_forensic_report.json"
-# Scan interval (120 seconds = 2 minutes)
-SCAN_INTERVAL = 3600
+SCAN_INTERVAL = 3600  # 3600 seconds = 1 hour for continuous 24/7 scanning
 DEFAULT_THRESHOLD = 300.0
 
 # ── Directory Resolution (Matching log.py structure) ──
@@ -31,6 +30,8 @@ DOCUMENTS_DIR = os.path.join(os.path.expanduser("~"), "Documents")
 REPORT_ROOT_DIR = os.path.join(DOCUMENTS_DIR, "Forensic_Reports")
 
 PERIODIC_DIR = os.path.join(REPORT_ROOT_DIR, "json")
+CSV_DIR = os.path.join(REPORT_ROOT_DIR, "csv")
+HTML_DIR = os.path.join(REPORT_ROOT_DIR, "html")
 MANUAL_DIR = os.path.join(REPORT_ROOT_DIR, "manual-scans")
 
 # Standard Linux system logs to check for periodic background scanning
@@ -79,7 +80,7 @@ def _safe_json(value):
         return value.isoformat()
     return value
 
-def analyze_log_file(log_path: str, threshold_seconds: float, original_filename: str = None) -> dict:
+def analyze_log_file(log_path: str, threshold_seconds: float) -> dict:
     """Core wrapper around your log.py engine."""
     if not os.path.isfile(log_path):
         raise FileNotFoundError(f"Log file not found: {log_path}")
@@ -89,32 +90,27 @@ def analyze_log_file(log_path: str, threshold_seconds: float, original_filename:
         result = scan_log(log_path, threshold_seconds)
         
         # Display the log.py terminal output in the console running the Flask server
-        display_name = original_filename if original_filename else log_path
-        report_terminal(result, display_name)
-        
-        # Force terminal to output immediately (prevents buffering issues in Flask)
-        sys.stdout.flush()
+        report_terminal(result, log_path)
     except SystemExit as exc:
         raise RuntimeError(f"Log analysis failed for {log_path}") from exc
         
     result["file_info"] = _file_metadata(log_path)
-    
-    # If manual scan, replace temp filename with the actual uploaded filename
-    if original_filename:
-        result["file_info"]["filename"] = original_filename
-
     result["risk_score"] = _risk_score(result.get("gaps", []), result.get("threats", []))
     result["threshold_seconds"] = threshold_seconds
     result["analysis_generated_at"] = datetime.now().isoformat()
     return result
 
 def save_periodic_report(report_data: dict) -> dict:
-    """Saves the report exactly matching log.py's hierarchical format."""
+    """Saves JSON and companion CSV/HTML periodic artifacts."""
     date_str = datetime.now().strftime("%Y-%m-%d")
     ts_str = datetime.now().strftime("%H%M%S")
     
     date_dir = os.path.join(PERIODIC_DIR, date_str)
+    csv_date_dir = os.path.join(CSV_DIR, date_str)
+    html_date_dir = os.path.join(HTML_DIR, date_str)
     os.makedirs(date_dir, exist_ok=True)
+    os.makedirs(csv_date_dir, exist_ok=True)
+    os.makedirs(html_date_dir, exist_ok=True)
 
     # Find the highest existing 'n' prefix to increment
     existing_files = os.listdir(date_dir)
@@ -125,15 +121,69 @@ def save_periodic_report(report_data: dict) -> dict:
             highest_n = max(highest_n, int(match.group(1)))
             
     n = highest_n + 1
-    final_filename = f"{n}_forensic_data_{ts_str}.json"
-    final_filepath = os.path.join(date_dir, final_filename)
+    json_filename = f"{n}_forensic_data_{ts_str}.json"
+    csv_integrity_filename = f"{n}_integrity_report_{ts_str}.csv"
+    csv_behavioral_filename = f"{n}_threat_actors_{ts_str}.csv"
+    html_filename = f"{n}_visual_report_{ts_str}.html"
+
+    final_filepath = os.path.join(date_dir, json_filename)
+    csv_integrity_path = os.path.join(csv_date_dir, csv_integrity_filename)
+    csv_behavioral_path = os.path.join(csv_date_dir, csv_behavioral_filename)
+    html_path = os.path.join(html_date_dir, html_filename)
 
     with open(final_filepath, "w", encoding="utf-8") as f:
         json.dump(_safe_json(report_data), f, indent=2)
+
+    report_csv_integrity(report_data, csv_integrity_path)
+    report_csv_behavioral(report_data, csv_behavioral_path)
+    source_path = report_data.get("file_info", {}).get("path", "system-log")
+    report_html(report_data, source_path, html_path)
         
     logger.info(f"Periodic report saved to: {final_filepath}")
     report_data["archive_path"] = final_filepath
+    report_data["artifact_paths"] = {
+        "json": final_filepath,
+        "csv_integrity": csv_integrity_path,
+        "csv_behavioral": csv_behavioral_path,
+        "html": html_path,
+    }
     return report_data
+
+
+def _save_manual_artifacts(report_data: dict, source_path: str) -> dict:
+    """Saves CSV/HTML artifacts for manual scans using dated folders."""
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    ts_str = datetime.now().strftime("%H%M%S")
+
+    csv_date_dir = os.path.join(CSV_DIR, date_str)
+    html_date_dir = os.path.join(HTML_DIR, date_str)
+    os.makedirs(csv_date_dir, exist_ok=True)
+    os.makedirs(html_date_dir, exist_ok=True)
+
+    highest_n = 0
+    for filename in os.listdir(csv_date_dir):
+        match = re.match(r"^(\d+)_", filename)
+        if match:
+            highest_n = max(highest_n, int(match.group(1)))
+    n = highest_n + 1
+
+    csv_integrity_path = os.path.join(
+        csv_date_dir, f"{n}_integrity_report_{ts_str}.csv"
+    )
+    csv_behavioral_path = os.path.join(
+        csv_date_dir, f"{n}_threat_actors_{ts_str}.csv"
+    )
+    html_path = os.path.join(html_date_dir, f"{n}_visual_report_{ts_str}.html")
+
+    report_csv_integrity(report_data, csv_integrity_path)
+    report_csv_behavioral(report_data, csv_behavioral_path)
+    report_html(report_data, source_path, html_path)
+
+    return {
+        "csv_integrity": csv_integrity_path,
+        "csv_behavioral": csv_behavioral_path,
+        "html": html_path,
+    }
 
 def cleanup_manual_scans():
     """Deletes temporary manual scans older than 24 hours."""
@@ -146,74 +196,6 @@ def cleanup_manual_scans():
             # If older than 24 hours (86400 seconds), delete it
             if now - os.stat(filepath).st_mtime > 86400:
                 os.remove(filepath)
-
-
-def _iter_report_files(root_dir: str):
-    """Yield JSON report files under a root directory."""
-    if not os.path.exists(root_dir):
-        return
-    for current_root, _, files in os.walk(root_dir):
-        for filename in files:
-            if filename.endswith(".json"):
-                yield os.path.join(current_root, filename)
-
-
-def _latest_report_path() -> Optional[str]:
-    """Find the newest report from periodic and manual scan outputs."""
-    candidates = []
-    candidates.extend(_iter_report_files(PERIODIC_DIR) or [])
-    candidates.extend(_iter_report_files(MANUAL_DIR) or [])
-    if not candidates:
-        return None
-    return max(candidates, key=lambda path: os.path.getmtime(path))
-
-
-def _build_calendar_payload() -> list:
-    """Return periodic report files grouped by date for frontend calendar."""
-    rows = []
-    if not os.path.exists(PERIODIC_DIR):
-        return rows
-
-    for date_folder in sorted(os.listdir(PERIODIC_DIR), reverse=True):
-        date_path = os.path.join(PERIODIC_DIR, date_folder)
-        if not os.path.isdir(date_path):
-            continue
-
-        files = []
-        for filename in sorted(os.listdir(date_path), reverse=True):
-            if not filename.endswith(".json"):
-                continue
-            filepath = os.path.join(date_path, filename)
-            metadata = _file_metadata(filepath)
-            metadata["extension"] = os.path.splitext(filename)[1].lstrip(".").lower()
-            files.append(metadata)
-
-        if files:
-            rows.append({"date": date_folder, "files": files})
-
-    return rows
-
-
-def _resolve_periodic_report_path(filename: str, date: Optional[str] = None) -> str:
-    """Resolve a periodic report path by date+filename or by filename lookup."""
-    safe_filename = os.path.basename(filename)
-
-    if date:
-        safe_date = os.path.basename(date)
-        candidate = os.path.join(PERIODIC_DIR, safe_date, safe_filename)
-        if os.path.exists(candidate):
-            return candidate
-        raise FileNotFoundError(f"Report not found for {safe_date}/{safe_filename}")
-
-    matches = []
-    for path in _iter_report_files(PERIODIC_DIR) or []:
-        if os.path.basename(path) == safe_filename:
-            matches.append(path)
-
-    if not matches:
-        raise FileNotFoundError(f"Report not found for filename: {safe_filename}")
-
-    return max(matches, key=lambda path: os.path.getmtime(path))
 
 # ── Background Thread (24/7 Periodic Scanner) ──
 
@@ -254,47 +236,6 @@ def health_check():
         "report_root": REPORT_ROOT_DIR
     })
 
-
-@app.route("/", methods=["GET"])
-def index():
-    """Human-friendly root route for quick browser checks."""
-    return jsonify({
-        "service": "Forensic Backend",
-        "status": "running",
-        "message": "Backend is up. Use the API endpoints below.",
-        "endpoints": {
-            "health": "/api/health",
-            "latest_report": "/api/latest-report",
-            "manual_analyze_post": "/api/analyze",
-            "manual_analyze_post_new": "/api/analyze/manual",
-            "calendar": "/api/local-log-calendar",
-            "analyze_local_post": "/api/analyze-local",
-            "periodic_reports": "/api/reports"
-        }
-    })
-
-
-@app.route("/health", methods=["GET"])
-def health_check_legacy():
-    """Legacy health endpoint retained for frontend compatibility."""
-    return health_check()
-
-
-@app.route("/api/latest-report", methods=["GET"])
-def latest_report():
-    """Return the newest available report for dashboard bootstrap."""
-    report_path = _latest_report_path()
-    if not report_path:
-        return jsonify({"error": "No reports available yet."}), 404
-
-    try:
-        with open(report_path, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        return jsonify(_safe_json(payload))
-    except Exception as exc:
-        logger.exception("Failed to load latest report")
-        return jsonify({"error": f"Failed to read latest report: {str(exc)}"}), 500
-
 # 1. MANUAL SCAN ENDPOINT
 @app.route("/api/analyze/manual", methods=["POST"])
 def manual_scan():
@@ -306,17 +247,13 @@ def manual_scan():
     threshold = float(request.form.get("threshold", DEFAULT_THRESHOLD))
     suffix = os.path.splitext(uploaded_file.filename)[1] or ".log"
     
-    print(f"\n{'='*60}\n🚀 MANUAL SCAN TRIGGERED: {uploaded_file.filename}\n{'='*60}")
-    sys.stdout.flush()
-    
     # Save upload to secure temp file
     temp_fd, temp_path = tempfile.mkstemp(prefix="upload_", suffix=suffix)
     os.close(temp_fd)
 
     try:
         uploaded_file.save(temp_path)
-        # Pass the real filename so it displays correctly in the terminal
-        report_data = analyze_log_file(temp_path, threshold, original_filename=uploaded_file.filename)
+        report_data = analyze_log_file(temp_path, threshold)
         report_data["scan_type"] = "manual"
         
         # Save temporarily in manual-scans folder
@@ -326,8 +263,14 @@ def manual_scan():
         
         with open(temp_save_path, "w", encoding="utf-8") as f:
             json.dump(_safe_json(report_data), f, indent=2)
+
+        artifact_paths = _save_manual_artifacts(report_data, uploaded_file.filename)
             
         report_data["archive_path"] = temp_save_path
+        report_data["artifact_paths"] = {
+            "json": temp_save_path,
+            **artifact_paths,
+        }
         return jsonify(_safe_json(report_data))
         
     except Exception as exc:
@@ -336,38 +279,6 @@ def manual_scan():
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
-
-@app.route("/api/analyze", methods=["POST"])
-def manual_scan_legacy():
-    """Legacy endpoint retained for existing frontend integration."""
-    return manual_scan()
-
-
-@app.route("/api/local-log-calendar", methods=["GET"])
-def local_log_calendar_legacy():
-    """Legacy calendar endpoint mapping to periodic archived reports."""
-    return jsonify({"dates": _build_calendar_payload()})
-
-
-@app.route("/api/analyze-local", methods=["POST"])
-def analyze_local_legacy():
-    """Legacy local analysis endpoint: load archived periodic report JSON."""
-    payload = request.get_json(silent=True) or {}
-    filename = payload.get("filename", "")
-    date = payload.get("date")
-
-    if not filename:
-        return jsonify({"error": "Filename is required."}), 400
-
-    try:
-        report_path = _resolve_periodic_report_path(filename, date)
-        with open(report_path, "r", encoding="utf-8") as f:
-            report_data = json.load(f)
-        return jsonify(_safe_json(report_data))
-    except Exception as exc:
-        logger.exception("Legacy analyze-local failed")
-        return jsonify({"error": str(exc)}), 400
 
 # 2. PERIODIC SCANS LIST ENDPOINT
 @app.route("/api/reports", methods=["GET"])
@@ -419,15 +330,6 @@ def get_specific_report(date, filename):
 @socketio.on('connect')
 def handle_connect():
     logger.info("React client connected to WebSocket.")
-    report_path = _latest_report_path()
-    if not report_path:
-        return
-    try:
-        with open(report_path, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        emit('initial_data', _safe_json(payload))
-    except Exception:
-        logger.exception("Failed to emit initial_data to client")
 
 if __name__ == "__main__":
     # Check if a logfile was passed as a command-line argument

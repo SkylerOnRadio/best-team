@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Evidence Protector">
+  <rect width="64" height="64" rx="14" fill="#06212a" />
+  <path d="M32 10l18 7v14c0 12-7.6 19.9-18 23-10.4-3.1-18-11-18-23V17z" fill="#22d3ee" opacity="0.2"/>
+  <path d="M32 13l15 5.8v12.1c0 10.3-6.1 17-15 19.9-8.9-2.9-15-9.6-15-19.9V18.8z" fill="#67e8f9"/>
+  <path d="M21 33h22v4H21zm9-11h4v22h-4z" fill="#082f49"/>
+</svg>

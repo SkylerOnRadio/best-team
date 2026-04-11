@@ -28,6 +28,34 @@ function buildUrl(path: string) {
   return `${API_BASE}${path}`;
 }
 
+function normalizeReport(payload: ForensicReport): ForensicReport {
+  return {
+    ...payload,
+    gaps: Array.isArray(payload.gaps) ? payload.gaps : [],
+    threats: Array.isArray(payload.threats) ? payload.threats : [],
+    system_info: payload.system_info ?? {
+      os: "Unknown OS",
+      ver: "Unknown",
+      arch: "Unknown",
+      host: "Unknown host",
+      cpu: "Unknown CPU",
+      ts: new Date().toISOString(),
+    },
+    performance: payload.performance ?? {
+      time: 0,
+      lps: 0,
+    },
+    stats: payload.stats ?? {
+      log_type: "unknown",
+      total_lines: 0,
+      parsed_lines: 0,
+      skipped_lines: 0,
+      log_span_sec: 0,
+      obfuscation_count: 0,
+    },
+  };
+}
+
 function isNetworkError(error: unknown) {
   return error instanceof TypeError;
 }
@@ -278,20 +306,21 @@ function App() {
     (item) => item.filename === calendarFile,
   );
 
-  async function fetchLatestReport() {
-    const response = await fetch(buildUrl("/api/latest-report"));
+  async function fetchPeriodicReports() {
+    const response = await fetch(buildUrl("/api/reports"));
     if (!response.ok) {
-      throw new Error("Latest report is unavailable.");
+      throw new Error("Periodic report index is unavailable.");
     }
-    return (await response.json()) as ForensicReport;
+    return (await response.json()) as LocalCalendarDate[];
   }
 
   function applyBackendReport(nextReport: ForensicReport) {
+    const normalized = normalizeReport(nextReport);
     setReport((currentReport) => {
       if (currentReport && isUploadedCache(currentReport)) {
         return currentReport;
       }
-      return nextReport;
+      return normalized;
     });
     setLoadedFromCache(true);
     setError("");
@@ -329,14 +358,7 @@ function App() {
     setCalendarLoading(true);
     setError("");
     try {
-      const response = await fetch(buildUrl("/api/local-log-calendar"));
-      if (!response.ok) {
-        throw new Error("Unable to load local log calendar from backend.");
-      }
-      const payload = (await response.json()) as {
-        dates?: LocalCalendarDate[];
-      };
-      const rows = payload.dates ?? [];
+      const rows = await fetchPeriodicReports();
       setCalendarRows(rows);
       if (rows.length > 0 && !calendarDate) {
         setCalendarDate(rows[0].date);
@@ -353,7 +375,7 @@ function App() {
       setError(
         calendarError instanceof Error
           ? calendarError.message
-          : "Calendar data could not be loaded.",
+          : "Periodic reports could not be loaded.",
       );
     } finally {
       setCalendarLoading(false);
@@ -361,45 +383,20 @@ function App() {
   }
 
   useEffect(() => {
-    let active = true;
-    fetchLatestReport()
-      .then((data) => {
-        if (!active || !data) return;
-        if (!isUploadedCache(data)) {
-          applyBackendReport(data);
-          return;
-        }
-        setLoadedFromCache(false);
-      })
-      .catch(() => {
-        if (!active) return;
-        setLoadedFromCache(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
     loadCalendar();
   }, []);
 
   useEffect(() => {
     const socket = io(API_BASE, {
-      transports: ["websocket"],
       autoConnect: true,
     });
 
-    socket.on("initial_data", (payload: ForensicReport) => {
-      applyBackendReport(payload);
-    });
-
     socket.on("new_forensic_data", (payload: ForensicReport) => {
-      applyBackendReport(payload);
+      applyBackendReport(normalizeReport(payload));
+      void loadCalendar();
     });
 
-    socket.on("scan_error", (payload: ForensicReport) => {
+    socket.on("scan_error", (payload: { error?: string }) => {
       const currentReport = reportRef.current;
       if (!currentReport || !isUploadedCache(currentReport)) {
         setError(payload.error || "Backend scan failed.");
@@ -475,33 +472,34 @@ function App() {
 
   async function handleAnalyzeLocalFile() {
     if (!calendarFile) {
-      setError("Choose a local file from the selected date first.");
+      setError("Choose a periodic report from the selected date first.");
+      return;
+    }
+
+    const selectedReport = availableCalendarFiles.find(
+      (item) => item.filename === calendarFile,
+    );
+    if (!selectedReport?.url) {
+      setError("Selected report is missing a load URL.");
       return;
     }
 
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(buildUrl("/api/analyze-local"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: calendarFile,
-          threshold: threshold || "300",
-        }),
-      });
+      const response = await fetch(buildUrl(selectedReport.url));
       const payload = (await response.json()) as ForensicReport;
       if (!response.ok) {
-        throw new Error(payload.error || "Local file analysis failed.");
+        throw new Error(payload.error || "Report load failed.");
       }
-      setReport(payload);
+      setReport(normalizeReport(payload));
       setLoadedFromCache(true);
       setViewMode("dashboard");
     } catch (analysisError) {
       setError(
         analysisError instanceof Error
           ? analysisError.message
-          : "Unable to analyze selected local file.",
+          : "Unable to load the selected periodic report.",
       );
     } finally {
       setLoading(false);
@@ -522,27 +520,20 @@ function App() {
       formData.append("file", selectedFile);
       formData.append("threshold", threshold || "300");
 
-      let response = await fetch(buildUrl("/api/analyze"), {
+      const response = await fetch(buildUrl("/api/analyze/manual"), {
         method: "POST",
         body: formData,
       });
-
-      // Retry against local Flask directly if a proxy path was unreachable.
-      if (!response.ok && response.status >= 500) {
-        response = await fetch("http://127.0.0.1:5000/api/analyze", {
-          method: "POST",
-          body: formData,
-        });
-      }
 
       const payload = (await response.json()) as ForensicReport;
       if (!response.ok) {
         throw new Error(payload.error || "Analysis failed.");
       }
 
-      setReport(payload);
+      setReport(normalizeReport(payload));
       setLoadedFromCache(false);
       setViewMode("dashboard");
+      void loadCalendar();
     } catch (analysisError) {
       if (isNetworkError(analysisError)) {
         setError(
