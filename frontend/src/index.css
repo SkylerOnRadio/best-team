@@ -7,12 +7,33 @@
 :root {
   color-scheme: dark;
   --bg: #07111f;
+  --bg-gradient: linear-gradient(180deg, #07111f 0%, #08131f 42%, #050b14 100%);
   --panel: rgba(10, 18, 31, 0.82);
   --panel-strong: rgba(12, 23, 38, 0.95);
+  --glow-bg: #060010;
   --border: rgba(148, 163, 184, 0.14);
   --text: #e5eefc;
   --muted: #8aa0bd;
   --accent: #38bdf8;
+  --header-bg: rgba(2, 6, 23, 0.68);
+  --list-surface: #130b1f;
+  --list-thumb: #3f214f;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f8ff;
+  --bg-gradient: linear-gradient(180deg, #eef5ff 0%, #e8f2ff 44%, #f7fbff 100%);
+  --panel: rgba(255, 255, 255, 0.86);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --glow-bg: #f3f8ff;
+  --border: rgba(51, 65, 85, 0.16);
+  --text: #0f172a;
+  --muted: #334155;
+  --accent: #0284c7;
+  --header-bg: rgba(255, 255, 255, 0.86);
+  --list-surface: #e9eef9;
+  --list-thumb: #c4d0ea;
 }
 
 html,
@@ -35,8 +56,95 @@ body {
       rgba(15, 118, 110, 0.16),
       transparent 24%
     ),
-    linear-gradient(180deg, #07111f 0%, #08131f 42%, #050b14 100%);
+    var(--bg-gradient);
   color: var(--text);
+  transition:
+    background 300ms ease,
+    color 300ms ease;
+}
+
+.app-shell {
+  color: var(--text);
+}
+
+.app-header {
+  background: var(--header-bg);
+  border-bottom-color: var(--border);
+}
+
+:root[data-theme="light"] .app-shell .text-white {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .app-shell .text-slate-400,
+:root[data-theme="light"] .app-shell .text-slate-300,
+:root[data-theme="light"] .app-shell .text-slate-200 {
+  color: #334155;
+}
+
+:root[data-theme="light"] .app-shell .bg-slate-950\/45,
+:root[data-theme="light"] .app-shell .bg-slate-950\/50,
+:root[data-theme="light"] .app-shell .bg-slate-950\/40,
+:root[data-theme="light"] .app-shell .bg-slate-950\/70,
+:root[data-theme="light"] .app-shell .bg-slate-950\/95,
+:root[data-theme="light"] .app-shell .bg-slate-950\/80 {
+  background-color: rgba(255, 255, 255, 0.82);
+}
+
+:root[data-theme="light"] .app-shell .border-white\/10,
+:root[data-theme="light"] .app-shell .border-white\/8,
+:root[data-theme="light"] .app-shell .border-white\/5,
+:root[data-theme="light"] .app-shell .border-dashed {
+  border-color: rgba(51, 65, 85, 0.16);
+}
+
+:root[data-theme="light"] .app-shell .bg-white\/5,
+:root[data-theme="light"] .app-shell .bg-white\/10,
+:root[data-theme="light"] .app-shell .bg-white\/7 {
+  background-color: rgba(15, 23, 42, 0.035);
+}
+
+:root[data-theme="light"] .app-shell [class*="text-cyan-"] {
+  color: #0f4c81;
+}
+
+:root[data-theme="light"] .app-shell [class*="text-fuchsia-"] {
+  color: #861657;
+}
+
+:root[data-theme="light"] .app-shell [class*="text-emerald-"] {
+  color: #065f46;
+}
+
+:root[data-theme="light"] .app-shell [class*="text-amber-"] {
+  color: #92400e;
+}
+
+:root[data-theme="light"] .app-shell [class*="text-rose-"] {
+  color: #9f1239;
+}
+
+:root[data-theme="light"] .app-shell [class*="text-sky-"] {
+  color: #0c4a6e;
+}
+
+:root[data-theme="light"] .app-shell [class*="text-slate-950"] {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .app-shell .calendar-shell {
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(244, 114, 182, 0.18),
+      transparent 48%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 255, 0.72));
+}
+
+:root[data-theme="light"] .app-shell .from-\[\#130b1f\],
+:root[data-theme="light"] .app-shell .to-transparent {
+  --tw-gradient-from: var(--list-surface) var(--tw-gradient-from-position);
 }
 
 * {
@@ -45,6 +153,101 @@ body {
 
 .font-display {
   font-family: "Space Grotesk", "Manrope", system-ui, sans-serif;
+}
+
+.home-hero-gloss {
+  position: relative;
+  overflow: hidden;
+}
+
+.home-hero-gloss::before {
+  content: "";
+  position: absolute;
+  inset: -30% -20% auto;
+  height: 220px;
+  background: radial-gradient(
+    circle at center,
+    rgba(236, 72, 153, 0.2),
+    transparent 58%
+  );
+  pointer-events: none;
+}
+
+.home-option-card {
+  position: relative;
+  transition:
+    transform 260ms ease,
+    box-shadow 260ms ease,
+    border-color 260ms ease;
+}
+
+.home-option-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 38px rgba(8, 22, 40, 0.35);
+}
+
+.calendar-shell {
+  position: relative;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(244, 114, 182, 0.14),
+      transparent 45%
+    ),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.34));
+}
+
+.theme-toggle {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle-track {
+  width: 46px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.9),
+    rgba(30, 41, 59, 0.85)
+  );
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  position: relative;
+  transition: background 220ms ease;
+}
+
+.theme-toggle-track--light {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.35),
+    rgba(56, 189, 248, 0.22)
+  );
+}
+
+.theme-toggle-knob {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 220ms ease,
+    background 220ms ease;
+}
+
+.theme-toggle-knob--right {
+  transform: translateX(22px);
+  background: rgba(30, 41, 59, 0.95);
 }
 
 .section-reveal {
@@ -63,9 +266,47 @@ body {
   filter: saturate(1);
 }
 
+.timeline-area-fill {
+  opacity: 0;
+  transform-origin: center bottom;
+  transform: scaleY(0.96);
+  transition:
+    opacity 800ms ease,
+    transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.timeline-area-fill--visible {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.timeline-point {
+  will-change: r, filter;
+}
+
+.bubble-point {
+  opacity: 0;
+  transform: translateY(14px) scale(0.82);
+  transition:
+    opacity 420ms ease,
+    transform 540ms cubic-bezier(0.2, 0.84, 0.2, 1),
+    fill-opacity 220ms ease,
+    stroke-width 220ms ease,
+    filter 220ms ease;
+}
+
+.bubble-point--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .section-reveal,
-  .section-reveal--visible {
+  .section-reveal--visible,
+  .timeline-area-fill,
+  .timeline-area-fill--visible,
+  .bubble-point,
+  .bubble-point--visible {
     transition: none;
     transform: none;
     opacity: 1;

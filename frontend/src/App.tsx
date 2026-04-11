@@ -1,14 +1,24 @@
-import {
-  ChangeEvent,
-  type PointerEvent,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { io } from "socket.io-client";
 import type { ForensicReport, GapEntry, ThreatActor } from "./types";
-import BorderGlow from "./components/BorderGlow";
+import CountUp from "./components/CountUp";
+import Badge from "./components/ui/Badge";
+import SectionShell from "./components/ui/SectionShell";
+import MetricCard from "./components/ui/MetricCard";
+import RiskMeter from "./components/ui/RiskMeter";
+import DetailsTable from "./components/ui/DetailsTable";
+import UploadCard from "./components/ui/UploadCard";
+import ScrollReveal from "./components/ui/ScrollReveal";
+import ActivityTimelineChart from "./components/charts/ActivityTimelineChart";
+import BubblePlot from "./components/charts/BubblePlot";
+import type {
+  ActivityBucket,
+  BubbleGroup,
+  BubblePoint,
+} from "./components/charts/types";
+import AppHeader from "./components/layout/AppHeader";
+import HomeHeroSection from "./components/home/HomeHeroSection";
+import type { LocalCalendarDate } from "./components/home/types";
 
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -58,24 +68,7 @@ function formatDuration(seconds?: number) {
   return `${hours}h ${remainingMinutes}m`;
 }
 
-type ActivityBucket = {
-  timeLabel: string;
-  count: number;
-};
-
-type BubbleGroup = "Access" | "Integrity" | "Data" | "Availability" | "Recon";
-
-type BubblePoint = {
-  id: string;
-  label: string;
-  group: BubbleGroup;
-  xValue: number;
-  yValue: number;
-  sizeValue: number;
-  hits: number;
-  failures: number;
-  tags: string[];
-};
+type ViewMode = "home" | "dashboard";
 
 function formatTimeLabel(value: Date, includeDate: boolean) {
   return includeDate
@@ -142,14 +135,6 @@ function isUploadedCache(report?: ForensicReport | null) {
     fileName.startsWith("forensic_upload_")
   );
 }
-
-const bubblePalette: Record<BubbleGroup, string> = {
-  Access: "#22d3ee",
-  Integrity: "#f97316",
-  Data: "#a3e635",
-  Availability: "#f43f5e",
-  Recon: "#c084fc",
-};
 
 function resolveBubbleGroup(tags: string[]): BubbleGroup {
   if (
@@ -270,744 +255,121 @@ function getSeverityTone(severity: string) {
   }
 }
 
-function getRiskTone(score: number) {
-  if (score >= 75) return "from-rose-500 to-rose-400";
-  if (score >= 40) return "from-amber-500 to-orange-400";
-  return "from-emerald-500 to-teal-400";
-}
-
-function Badge({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.16em] uppercase ${className}`}
-    >
-      {children}
-    </span>
-  );
-}
-
-function SectionShell({
-  title,
-  subtitle,
-  badge,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  badge?: ReactNode;
-  children: ReactNode;
-}) {
-  const shellRef = useRef<HTMLElement | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const target = shellRef.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.16, rootMargin: "0px 0px -32px 0px" },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <BorderGlow
-      edgeSensitivity={30}
-      glowColor="40 80 80"
-      backgroundColor="#060010"
-      borderRadius={28}
-      glowRadius={40}
-      glowIntensity={1}
-      coneSpread={25}
-      animated={false}
-      colors={["#c084fc", "#f472b6", "#38bdf8"]}
-      className={`w-full section-reveal ${isVisible ? "section-reveal--visible" : ""}`}
-    >
-      <section
-        ref={shellRef}
-        className="rounded-[28px] border border-white/10 bg-[var(--panel)] p-4 shadow-glow backdrop-blur-xl sm:p-6"
-      >
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-display text-xl font-bold text-white sm:text-2xl">
-              {title}
-            </h2>
-            {subtitle ? (
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
-          {badge}
-        </div>
-        {children}
-      </section>
-    </BorderGlow>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-        {label}
-      </p>
-      <p className="mt-2 font-display text-2xl font-bold text-white sm:text-[1.7rem]">
-        {value}
-      </p>
-      {detail ? <p className="mt-1 text-sm text-slate-400">{detail}</p> : null}
-    </div>
-  );
-}
-
-function RiskMeter({ score }: { score: number }) {
-  const tone = getRiskTone(score);
-  return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Probability of compromise
-          </p>
-          <div className="mt-2 flex items-end gap-3">
-            <span className="font-display text-5xl font-bold text-white">
-              {score}%
-            </span>
-            <span className="pb-1 text-sm text-slate-400">Risk score</span>
-          </div>
-        </div>
-        <Badge className="border-white/10 bg-white/5 text-slate-200">
-          Live analysis
-        </Badge>
-      </div>
-      <div className="mt-4 h-4 overflow-hidden rounded-full bg-white/10">
-        <div
-          className={`h-full rounded-full bg-gradient-to-r ${tone}`}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ActivityTimelineChart({ buckets }: { buckets: ActivityBucket[] }) {
-  if (buckets.length === 0) {
-    return (
-      <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 text-sm text-slate-400">
-        No timestamped activity was detected for plotting.
-      </div>
-    );
-  }
-
-  const chartWidth = 780;
-  const chartHeight = 260;
-  const leftPad = 54;
-  const rightPad = 24;
-  const topPad = 20;
-  const bottomPad = 52;
-  const innerWidth = chartWidth - leftPad - rightPad;
-  const innerHeight = chartHeight - topPad - bottomPad;
-  const maxCount = Math.max(...buckets.map((entry) => entry.count), 1);
-
-  const points = buckets
-    .map((entry, index) => {
-      const x =
-        leftPad +
-        (index / Math.max(buckets.length - 1, 1)) * Math.max(innerWidth, 1);
-      const y =
-        topPad +
-        innerHeight -
-        (entry.count / maxCount) * Math.max(innerHeight, 1);
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-    const y = topPad + innerHeight - ratio * innerHeight;
-    const value = Math.round(ratio * maxCount);
-    return { y, value };
-  });
-
-  return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-        X axis: time | Y axis: number of activities
-      </div>
-      <div className="overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="min-w-[560px] w-full"
-          role="img"
-          aria-label="Activity timeline graph"
-        >
-          {yTicks.map((tick) => (
-            <g key={`tick-${tick.y}`}>
-              <line
-                x1={leftPad}
-                y1={tick.y}
-                x2={chartWidth - rightPad}
-                y2={tick.y}
-                stroke="rgba(148, 163, 184, 0.25)"
-                strokeDasharray="4 4"
-              />
-              <text
-                x={leftPad - 10}
-                y={tick.y + 4}
-                textAnchor="end"
-                fontSize="11"
-                fill="rgba(203, 213, 225, 0.9)"
-              >
-                {tick.value}
-              </text>
-            </g>
-          ))}
-
-          <line
-            x1={leftPad}
-            y1={topPad + innerHeight}
-            x2={chartWidth - rightPad}
-            y2={topPad + innerHeight}
-            stroke="rgba(148, 163, 184, 0.45)"
-          />
-
-          <line
-            x1={leftPad}
-            y1={topPad}
-            x2={leftPad}
-            y2={topPad + innerHeight}
-            stroke="rgba(148, 163, 184, 0.45)"
-          />
-
-          <polyline
-            points={points}
-            fill="none"
-            stroke="rgba(34, 211, 238, 0.95)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {buckets.map((entry, index) => {
-            const x =
-              leftPad +
-              (index / Math.max(buckets.length - 1, 1)) *
-                Math.max(innerWidth, 1);
-            const y =
-              topPad +
-              innerHeight -
-              (entry.count / maxCount) * Math.max(innerHeight, 1);
-            return (
-              <g key={`${entry.timeLabel}-${index}`}>
-                <circle cx={x} cy={y} r="4" fill="rgba(34, 211, 238, 1)" />
-                <text
-                  x={x}
-                  y={chartHeight - 16}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fill="rgba(203, 213, 225, 0.92)"
-                >
-                  {entry.timeLabel}
-                </text>
-              </g>
-            );
-          })}
-
-          <text
-            x={leftPad + innerWidth / 2}
-            y={chartHeight - 2}
-            textAnchor="middle"
-            fontSize="11"
-            fill="rgba(148, 163, 184, 0.95)"
-          >
-            Time
-          </text>
-          <text
-            x={16}
-            y={topPad + innerHeight / 2}
-            textAnchor="middle"
-            fontSize="11"
-            fill="rgba(148, 163, 184, 0.95)"
-            transform={`rotate(-90 16 ${topPad + innerHeight / 2})`}
-          >
-            Number of Activities
-          </text>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-function BubblePlot({ points }: { points: BubblePoint[] }) {
-  const [activeGroup, setActiveGroup] = useState<BubbleGroup | "All">("All");
-  const [activePointId, setActivePointId] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<{
-    id: string;
-    x: number;
-    y: number;
-  } | null>(null);
-
-  if (points.length === 0) {
-    return (
-      <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 text-sm text-slate-400">
-        No threat-actor data available for the bubble plot yet.
-      </div>
-    );
-  }
-
-  const width = 860;
-  const height = 420;
-  const leftPad = 72;
-  const rightPad = 176;
-  const topPad = 24;
-  const bottomPad = 56;
-  const innerWidth = width - leftPad - rightPad;
-  const innerHeight = height - topPad - bottomPad;
-
-  const xMax = Math.max(...points.map((point) => point.xValue), 1);
-  const yMax = Math.max(...points.map((point) => point.yValue), 1);
-  const minRawSize = Math.min(...points.map((point) => point.sizeValue));
-  const maxRawSize = Math.max(...points.map((point) => point.sizeValue));
-
-  const radiusFor = (value: number) => {
-    if (maxRawSize === minRawSize) return 14;
-    const normalized = (value - minRawSize) / (maxRawSize - minRawSize);
-    return 8 + Math.sqrt(Math.max(normalized, 0)) * 18;
-  };
-
-  const plotted = points.map((point) => {
-    const radius = radiusFor(point.sizeValue);
-    const rawCx = leftPad + (point.xValue / xMax) * innerWidth;
-    const rawCy = topPad + innerHeight - (point.yValue / yMax) * innerHeight;
-    const cx = Math.min(
-      leftPad + innerWidth - radius,
-      Math.max(leftPad + radius, rawCx),
-    );
-    const cy = Math.min(
-      topPad + innerHeight - radius,
-      Math.max(topPad + radius, rawCy),
-    );
-    return { ...point, cx, cy, radius };
-  });
-
-  const activePoint =
-    plotted.find((point) => point.id === activePointId) ?? null;
-  const groups = Object.keys(bubblePalette) as BubbleGroup[];
-
-  function handlePointMove(
-    event: PointerEvent<SVGCircleElement>,
-    pointId: string,
-  ) {
-    const svg = event.currentTarget.ownerSVGElement;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    setTooltip({
-      id: pointId,
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
-    setActivePointId(pointId);
-  }
-
-  function clearPointHover() {
-    setActivePointId(null);
-    setTooltip(null);
-  }
-
-  return (
-    <div className="relative rounded-3xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-        X axis: activity pressure | Y axis: threat complexity | Bubble size:
-        actor volume
-      </div>
-      <div className="overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="min-w-[620px] w-full"
-          role="img"
-          aria-label="Threat bubble plot"
-        >
-          <defs>
-            <clipPath id="bubble-plot-clip">
-              <rect
-                x={leftPad}
-                y={topPad}
-                width={innerWidth}
-                height={innerHeight}
-              />
-            </clipPath>
-          </defs>
-
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-            const y = topPad + innerHeight - ratio * innerHeight;
-            const label = Math.round(yMax * ratio);
-            return (
-              <g key={`y-${ratio}`}>
-                <line
-                  x1={leftPad}
-                  y1={y}
-                  x2={leftPad + innerWidth}
-                  y2={y}
-                  stroke="rgba(148,163,184,0.22)"
-                  strokeDasharray="3 5"
-                />
-                <text
-                  x={leftPad - 10}
-                  y={y + 4}
-                  textAnchor="end"
-                  fontSize="11"
-                  fill="rgba(203,213,225,0.9)"
-                >
-                  {label}
-                </text>
-              </g>
-            );
-          })}
-
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-            const x = leftPad + ratio * innerWidth;
-            const label = Math.round(xMax * ratio);
-            return (
-              <g key={`x-${ratio}`}>
-                <line
-                  x1={x}
-                  y1={topPad}
-                  x2={x}
-                  y2={topPad + innerHeight}
-                  stroke="rgba(148,163,184,0.14)"
-                />
-                <text
-                  x={x}
-                  y={height - 20}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fill="rgba(203,213,225,0.9)"
-                >
-                  {label}
-                </text>
-              </g>
-            );
-          })}
-
-          <line
-            x1={leftPad}
-            y1={topPad + innerHeight}
-            x2={leftPad + innerWidth}
-            y2={topPad + innerHeight}
-            stroke="rgba(148,163,184,0.5)"
-          />
-          <line
-            x1={leftPad}
-            y1={topPad}
-            x2={leftPad}
-            y2={topPad + innerHeight}
-            stroke="rgba(148,163,184,0.5)"
-          />
-
-          <g clipPath="url(#bubble-plot-clip)">
-            {plotted.map((point) => {
-              const isDimmed =
-                activeGroup !== "All" && point.group !== activeGroup;
-              const isActive = point.id === activePointId;
-              return (
-                <g key={point.id}>
-                  <circle
-                    cx={point.cx}
-                    cy={point.cy}
-                    r={Math.max(point.radius, 14)}
-                    fill="transparent"
-                    onPointerEnter={(event) => handlePointMove(event, point.id)}
-                    onPointerMove={(event) => handlePointMove(event, point.id)}
-                    onPointerLeave={clearPointHover}
-                    style={{ cursor: "pointer" }}
-                  />
-                  <circle
-                    cx={point.cx}
-                    cy={point.cy}
-                    r={point.radius}
-                    fill={bubblePalette[point.group]}
-                    fillOpacity={isDimmed ? 0.16 : 0.36}
-                    stroke={bubblePalette[point.group]}
-                    strokeWidth={isActive ? 2.8 : 1.2}
-                    className="transition-all"
-                    pointerEvents="none"
-                  />
-                </g>
-              );
-            })}
-          </g>
-
-          <text
-            x={leftPad + innerWidth / 2}
-            y={height - 2}
-            textAnchor="middle"
-            fontSize="12"
-            fill="rgba(148,163,184,0.95)"
-          >
-            Activity pressure score
-          </text>
-
-          <text
-            x={24}
-            y={topPad + innerHeight / 2}
-            textAnchor="middle"
-            fontSize="12"
-            fill="rgba(148,163,184,0.95)"
-            transform={`rotate(-90 24 ${topPad + innerHeight / 2})`}
-          >
-            Threat complexity score
-          </text>
-
-          <text
-            x={leftPad + innerWidth + 18}
-            y={topPad + 12}
-            fontSize="11"
-            fill="rgba(148,163,184,0.95)"
-          >
-            Groups
-          </text>
-          {groups.map((group, index) => {
-            const y = topPad + 34 + index * 24;
-            return (
-              <g
-                key={group}
-                onMouseEnter={() => setActiveGroup(group)}
-                onMouseLeave={() => setActiveGroup("All")}
-              >
-                <circle
-                  cx={leftPad + innerWidth + 18}
-                  cy={y - 5}
-                  r="6"
-                  fill={bubblePalette[group]}
-                />
-                <text
-                  x={leftPad + innerWidth + 30}
-                  y={y - 2}
-                  fontSize="12"
-                  fill={
-                    activeGroup === group ? "#ffffff" : "rgba(203,213,225,0.9)"
-                  }
-                >
-                  {group}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {tooltip && activePoint && tooltip.id === activePoint.id ? (
-        <div
-          className="pointer-events-none absolute z-20 rounded-xl border border-cyan-400/30 bg-slate-950/95 px-3 py-2 text-xs text-cyan-50 shadow-xl"
-          style={{
-            left: `${Math.min(tooltip.x + 14, width - 210)}px`,
-            top: `${Math.max(tooltip.y - 22, 12)}px`,
-          }}
-        >
-          <p className="font-semibold">{activePoint.label}</p>
-          <p>Hits: {formatNumber(activePoint.hits)}</p>
-          <p>Failures: {formatNumber(activePoint.failures)}</p>
-        </div>
-      ) : null}
-
-      {activePoint ? (
-        <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-          <span className="font-semibold text-white">{activePoint.label}</span>{" "}
-          | Hits: {formatNumber(activePoint.hits)} | Failed attempts:{" "}
-          {formatNumber(activePoint.failures)} | Tags:{" "}
-          {activePoint.tags.slice(0, 4).join(", ") || "None"}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function DetailsTable({
-  headers,
-  rows,
-  emptyText,
-}: {
-  headers: string[];
-  rows: ReactNode[];
-  emptyText: string;
-}) {
-  return (
-    <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/45">
-      <div className="max-h-[32rem] overflow-auto">
-        <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-slate-950/95 text-[11px] uppercase tracking-[0.2em] text-slate-400">
-            <tr>
-              {headers.map((header) => (
-                <th
-                  key={header}
-                  className="border-b border-white/10 px-4 py-3 font-semibold"
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length > 0 ? (
-              rows
-            ) : (
-              <tr>
-                <td
-                  className="px-4 py-8 text-center text-slate-400"
-                  colSpan={headers.length}
-                >
-                  {emptyText}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function UploadCard({
-  selectedFileName,
-  currentReportName,
-  threshold,
-  loading,
-  error,
-  onFileChange,
-  onThresholdChange,
-  onSubmit,
-}: {
-  selectedFileName: string;
-  currentReportName: string;
-  threshold: string;
-  loading: boolean;
-  error: string;
-  onFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onThresholdChange: (value: string) => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <div className="rounded-[30px] border border-cyan-400/20 bg-[var(--panel-strong)] p-5 shadow-glow backdrop-blur-xl sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/70">
-            Upload section
-          </p>
-          <h1 className="font-display mt-2 text-3xl font-bold text-white sm:text-4xl">
-            Log file analyzer
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-            Upload a log file, tune the gap threshold, and analyze suspicious
-            time gaps and threat actors in the same forensic layout used by the
-            generated report.
-          </p>
-        </div>
-        <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100">
-          Tailwind + React + Fetch
-        </Badge>
-      </div>
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <label className="flex cursor-pointer flex-col rounded-3xl border border-dashed border-white/15 bg-white/5 px-4 py-5 transition hover:border-cyan-400/40 hover:bg-white/7">
-          <span className="text-sm font-semibold text-white">Log file</span>
-          <span className="mt-1 text-sm text-slate-400">
-            Choose a log file to upload for analysis.
-          </span>
-          <input
-            type="file"
-            accept=".log,.txt,.csv"
-            onChange={onFileChange}
-            className="mt-4 block w-full text-sm text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-cyan-400 file:px-4 file:py-2 file:font-semibold file:text-slate-950 hover:file:bg-cyan-300"
-          />
-          <span className="mt-3 text-xs text-slate-500">
-            Selected file: {selectedFileName || "No file selected"}
-          </span>
-          <span className="mt-1 text-xs text-slate-500">
-            Current report: {currentReportName}
-          </span>
-        </label>
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-          <label className="block text-sm font-semibold text-white">
-            Threshold (seconds)
-          </label>
-          <input
-            type="number"
-            min={1}
-            value={threshold}
-            onChange={(event) => onThresholdChange(event.target.value)}
-            className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/60"
-          />
-          <p className="mt-2 text-sm text-slate-400">
-            Default is 300 seconds, matching the forensic report baseline.
-          </p>
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={loading || !selectedFileName}
-            className="mt-4 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-          >
-            {loading ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950" />
-            ) : null}
-            {loading ? "Analyzing..." : "Analyze log"}
-          </button>
-        </div>
-      </div>
-
-      {error ? (
-        <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>("home");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [threshold, setThreshold] = useState("300");
   const [report, setReport] = useState<ForensicReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loadedFromCache, setLoadedFromCache] = useState(false);
+  const [calendarRows, setCalendarRows] = useState<LocalCalendarDate[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarDate, setCalendarDate] = useState("");
+  const [calendarFile, setCalendarFile] = useState("");
+  const reportRef = useRef<ForensicReport | null>(null);
+
+  const selectedCalendarEntry = calendarRows.find(
+    (row) => row.date === calendarDate,
+  );
+  const availableCalendarFiles = selectedCalendarEntry?.files ?? [];
+  const selectedCalendarIndex = availableCalendarFiles.findIndex(
+    (item) => item.filename === calendarFile,
+  );
+
+  async function fetchLatestReport() {
+    const response = await fetch(buildUrl("/api/latest-report"));
+    if (!response.ok) {
+      throw new Error("Latest report is unavailable.");
+    }
+    return (await response.json()) as ForensicReport;
+  }
+
+  function applyBackendReport(nextReport: ForensicReport) {
+    setReport((currentReport) => {
+      if (currentReport && isUploadedCache(currentReport)) {
+        return currentReport;
+      }
+      return nextReport;
+    });
+    setLoadedFromCache(true);
+    setError("");
+  }
+
+  useEffect(() => {
+    reportRef.current = report;
+  }, [report]);
+
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("ldfta-theme");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        setTheme(savedTheme);
+        return;
+      }
+      if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+        setTheme("light");
+      }
+    } catch {
+      // Ignore storage access errors and keep default theme.
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("ldfta-theme", theme);
+    } catch {
+      // Ignore storage access errors.
+    }
+  }, [theme]);
+
+  async function loadCalendar() {
+    setCalendarLoading(true);
+    setError("");
+    try {
+      const response = await fetch(buildUrl("/api/local-log-calendar"));
+      if (!response.ok) {
+        throw new Error("Unable to load local log calendar from backend.");
+      }
+      const payload = (await response.json()) as {
+        dates?: LocalCalendarDate[];
+      };
+      const rows = payload.dates ?? [];
+      setCalendarRows(rows);
+      if (rows.length > 0 && !calendarDate) {
+        setCalendarDate(rows[0].date);
+        setCalendarFile(rows[0].files[0]?.filename ?? "");
+      }
+      if (rows.length === 0) {
+        setCalendarDate("");
+        setCalendarFile("");
+      }
+    } catch (calendarError) {
+      setCalendarRows([]);
+      setCalendarDate("");
+      setCalendarFile("");
+      setError(
+        calendarError instanceof Error
+          ? calendarError.message
+          : "Calendar data could not be loaded.",
+      );
+    } finally {
+      setCalendarLoading(false);
+    }
+  }
 
   useEffect(() => {
     let active = true;
-    fetch(buildUrl("/api/latest-report"))
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return (await response.json()) as ForensicReport;
-      })
+    fetchLatestReport()
       .then((data) => {
         if (!active || !data) return;
-        if (isUploadedCache(data)) {
-          setLoadedFromCache(false);
+        if (!isUploadedCache(data)) {
+          applyBackendReport(data);
           return;
         }
-        setReport(data);
-        setLoadedFromCache(true);
+        setLoadedFromCache(false);
       })
       .catch(() => {
         if (!active) return;
@@ -1018,6 +380,50 @@ function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    loadCalendar();
+  }, []);
+
+  useEffect(() => {
+    const socket = io(API_BASE, {
+      transports: ["websocket"],
+      autoConnect: true,
+    });
+
+    socket.on("initial_data", (payload: ForensicReport) => {
+      applyBackendReport(payload);
+    });
+
+    socket.on("new_forensic_data", (payload: ForensicReport) => {
+      applyBackendReport(payload);
+    });
+
+    socket.on("scan_error", (payload: ForensicReport) => {
+      const currentReport = reportRef.current;
+      if (!currentReport || !isUploadedCache(currentReport)) {
+        setError(payload.error || "Backend scan failed.");
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!calendarDate || availableCalendarFiles.length === 0) {
+      setCalendarFile("");
+      return;
+    }
+
+    const exists = availableCalendarFiles.some(
+      (item) => item.filename === calendarFile,
+    );
+    if (!exists) {
+      setCalendarFile(availableCalendarFiles[0].filename);
+    }
+  }, [calendarDate, availableCalendarFiles, calendarFile]);
 
   const activityTimeline = buildActivityTimeline(report ?? undefined);
   const bubblePoints = useMemo(
@@ -1067,6 +473,41 @@ function App() {
     setError("");
   }
 
+  async function handleAnalyzeLocalFile() {
+    if (!calendarFile) {
+      setError("Choose a local file from the selected date first.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(buildUrl("/api/analyze-local"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: calendarFile,
+          threshold: threshold || "300",
+        }),
+      });
+      const payload = (await response.json()) as ForensicReport;
+      if (!response.ok) {
+        throw new Error(payload.error || "Local file analysis failed.");
+      }
+      setReport(payload);
+      setLoadedFromCache(true);
+      setViewMode("dashboard");
+    } catch (analysisError) {
+      setError(
+        analysisError instanceof Error
+          ? analysisError.message
+          : "Unable to analyze selected local file.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleAnalyze() {
     if (!selectedFile) {
       setError("Choose a log file before analyzing.");
@@ -1101,6 +542,7 @@ function App() {
 
       setReport(payload);
       setLoadedFromCache(false);
+      setViewMode("dashboard");
     } catch (analysisError) {
       if (isNetworkError(analysisError)) {
         setError(
@@ -1124,689 +566,768 @@ function App() {
     "sample.log";
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-slate-100">
+    <div className="app-shell relative min-h-screen overflow-hidden text-slate-100">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.06),transparent_30%),linear-gradient(250deg,rgba(15,23,42,0.15),transparent_36%)]" />
       <div className="pointer-events-none absolute left-[-10%] top-10 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
       <div className="pointer-events-none absolute right-[-8%] top-1/4 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
 
-      <header className="sticky top-0 z-20 border-b border-white/8 bg-slate-950/65 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <p className="font-display text-lg font-bold tracking-wide text-white sm:text-xl">
-              Evidence Protector Dashboard
-            </p>
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
-              Suspicious gaps, threat actors, and forensic metadata
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className="border-white/10 bg-white/5 text-slate-200">
-              {loadedFromCache ? "Cached report" : "Live upload"}
-            </Badge>
-            <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100">
-              Fetch API
-            </Badge>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        theme={theme}
+        onAnalyzeUpload={handleAnalyze}
+        analyzeDisabled={loading || !selectedFile}
+        analyzeLabel={loading ? "Analyzing..." : "Analyze upload"}
+        onToggleTheme={() =>
+          setTheme((current) => (current === "dark" ? "light" : "dark"))
+        }
+      />
 
       <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <UploadCard
-            selectedFileName={selectedFile?.name ?? ""}
-            currentReportName={reportFileName}
-            threshold={threshold}
-            loading={loading}
-            error={error}
-            onFileChange={handleFileChange}
-            onThresholdChange={setThreshold}
-            onSubmit={handleAnalyze}
-          />
+        {viewMode === "home" ? (
+          <ScrollReveal threshold={0.1} delayMs={40}>
+            <HomeHeroSection
+              theme={theme}
+              selectedFileName={selectedFile?.name ?? ""}
+              threshold={threshold}
+              loading={loading}
+              onFileChange={handleFileChange}
+              onThresholdChange={setThreshold}
+              onAnalyzeUpload={handleAnalyze}
+              calendarRows={calendarRows}
+              calendarLoading={calendarLoading}
+              calendarDate={calendarDate}
+              calendarFile={calendarFile}
+              availableCalendarFiles={availableCalendarFiles}
+              selectedCalendarIndex={selectedCalendarIndex}
+              onRefreshCalendar={loadCalendar}
+              onCalendarDateChange={(nextDate) => {
+                setCalendarDate(nextDate);
+                const nextRow = calendarRows.find(
+                  (row) => row.date === nextDate,
+                );
+                setCalendarFile(nextRow?.files[0]?.filename ?? "");
+              }}
+              onCalendarFileChange={setCalendarFile}
+              onAnalyzeLocal={handleAnalyzeLocalFile}
+            />
+          </ScrollReveal>
+        ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <RiskMeter score={riskScore} />
-            <div className="rounded-3xl border border-white/10 bg-[var(--panel)] p-5 shadow-glow backdrop-blur-xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                Evidence summary
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                <MetricCard
-                  label="Timeline anomalies"
-                  value={formatNumber(gapCount)}
-                  detail={`${criticalGaps.length} critical gaps`}
-                />
-                <MetricCard
-                  label="Threat actors"
-                  value={formatNumber(threatCount)}
-                  detail={`${bruteForceActors.length} brute-force targets`}
-                />
-                <MetricCard
-                  label="Parsed lines"
-                  value={formatNumber(parsedLines)}
-                  detail={`of ${formatNumber(totalLines)} total lines`}
-                />
-                <MetricCard
-                  label="Obfuscation"
-                  value={formatNumber(obfuscationCount)}
-                  detail={`${skippedLines} noisy lines skipped`}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {report ? (
-          <>
-            <SectionShell
-              title="System context"
-              subtitle="The generated dashboard preserves the system, performance, and file metadata already present in the forensic report."
-              badge={
-                <Badge className="border-white/10 bg-white/5 text-slate-200">
-                  {report.stats.log_type}
-                </Badge>
-              }
-            >
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100/80">
-                    Host
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-bold text-white">
-                    {report.system_info.host}
-                  </p>
-                  <p className="mt-1 text-sm text-cyan-50/80">
-                    {report.system_info.os}
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-100/80">
-                    Processor
-                  </p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-white">
-                    {report.system_info.cpu || "Unknown"}
-                  </p>
-                  <p className="mt-1 text-sm text-fuchsia-50/80">
-                    {report.system_info.arch} architecture
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100/80">
-                    Processing time
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-bold text-white">
-                    {report.performance.time}s
-                  </p>
-                  <p className="mt-1 text-sm text-emerald-50/80">
-                    {report.performance.lps.toLocaleString()} lines/sec
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-100/80">
-                    Log span
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-bold text-white">
-                    {formatDuration(report.stats.log_span_sec)}
-                  </p>
-                  <p className="mt-1 text-sm text-amber-50/80">
-                    Scanned at {formatDate(report.system_info.ts)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                      File metadata
-                    </p>
-                    <Badge className="border-white/10 bg-white/5 text-slate-200">
-                      {report.file_info?.extension || "LOG"}
-                    </Badge>
-                  </div>
-                  <div className="space-y-3 text-sm text-slate-300">
-                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">File</span>
-                      <span className="font-semibold text-white break-all">
-                        {report.file_info?.filename ?? reportFileName}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Path</span>
-                      <span className="font-mono text-[12px] leading-6 text-slate-200 break-all">
-                        {report.file_info?.path ??
-                          report.analysis_source ??
-                          "—"}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Size</span>
-                      <span className="font-semibold text-white">
-                        {formatBytes(report.file_info?.size_bytes)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Modified</span>
-                      <span className="font-semibold text-white">
-                        {formatDate(report.file_info?.modified_at)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                      Processing intelligence
-                    </p>
-                    <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100">
-                      {report.stats.log_type}
-                    </Badge>
-                  </div>
-                  <div className="space-y-3 text-sm text-slate-300">
-                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Total lines</span>
-                      <span className="font-semibold text-white">
-                        {formatNumber(report.stats.total_lines)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Parsed lines</span>
-                      <span className="font-semibold text-white">
-                        {formatNumber(report.stats.parsed_lines)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Skipped lines</span>
-                      <span className="font-semibold text-white">
-                        {formatNumber(report.stats.skipped_lines)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr] sm:gap-2">
-                      <span className="text-slate-400">Threshold</span>
-                      <span className="font-semibold text-white">
-                        {report.threshold_seconds ?? threshold} sec
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </SectionShell>
-
-            <SectionShell
-              title="Activity timeline"
-              subtitle="Time is plotted on the X axis and the number of suspicious activities is plotted on the Y axis."
-              badge={
-                <Badge className="border-white/10 bg-white/5 text-slate-200">
-                  {activityTimeline.length} time buckets
-                </Badge>
-              }
-            >
-              <ActivityTimelineChart buckets={activityTimeline} />
-            </SectionShell>
-
-            <SectionShell
-              title="Threat bubble map"
-              subtitle="A creative bubble plot where each threat actor is placed by behavior intensity and complexity, with bubble size indicating actor volume."
-              badge={
-                <Badge className="border-white/10 bg-white/5 text-slate-200">
-                  {bubblePoints.length} actors plotted
-                </Badge>
-              }
-            >
-              <BubblePlot points={bubblePoints} />
-            </SectionShell>
-
-            <SectionShell
-              title="Forensic reconstruction"
-              subtitle="This narrative mirrors the report snapshot: anomaly count, actor count, and the most active source are surfaced up front."
-              badge={
-                <Badge className="border-slate-500/30 bg-white/5 text-slate-200">
-                  Generated{" "}
-                  {formatDate(
-                    report.analysis_generated_at ?? report.server_timestamp,
-                  )}
-                </Badge>
-              }
-            >
-              <div className="rounded-[28px] border-l-4 border-cyan-400 bg-slate-950/70 p-5 text-slate-200 shadow-inner shadow-cyan-950/20">
-                <p className="text-sm leading-7 text-slate-300">
-                  Analysis of{" "}
-                  <span className="font-semibold text-white">
-                    {formatNumber(report.stats.total_lines)}
-                  </span>{" "}
-                  lines revealed{" "}
-                  <span className="font-semibold text-white">
-                    {formatNumber(threatCount)}
-                  </span>{" "}
-                  actors. Integrity confidence is{" "}
-                  <span className="font-semibold text-white">
-                    {report.gaps.length > 0 ? "LOW" : "HIGH"}
-                  </span>
-                  . The most significant finding is{" "}
-                  <span className="font-semibold text-white">
-                    {topThreat ? formatNumber(topThreat.hits) : 0}
-                  </span>{" "}
-                  logged events from a single source IP.
-                </p>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <MetricCard
-                    label="Top actor"
-                    value={topThreat?.ip ?? "None"}
-                    detail={`${topThreat ? formatNumber(topThreat.hits) : 0} hits`}
-                  />
-                  <MetricCard
-                    label="Threat tags"
-                    value={topThreat?.risk_tags?.length?.toString() ?? "0"}
-                    detail={
-                      topThreat?.risk_tags?.slice(0, 3).join(", ") || "No tags"
-                    }
-                  />
-                  <MetricCard
-                    label="Risk score"
-                    value={`${riskScore}%`}
-                    detail="Computed from timeline and behavior"
-                  />
-                </div>
-              </div>
-            </SectionShell>
-
-            <SectionShell
-              title="Categorized forensic evidence"
-              subtitle="The dashboard preserves the report's zoning structure while keeping the upload workflow on the same page."
-              badge={
-                <Badge className="border-white/10 bg-white/5 text-slate-200">
-                  {reversedGaps.length + criticalGaps.length} integrity events
-                </Badge>
-              }
-            >
-              <div className="space-y-4">
-                <details
-                  open
-                  className="group rounded-3xl border border-white/10 bg-slate-950/40 overflow-hidden"
-                >
-                  <summary className="flex cursor-pointer list-none items-center gap-3 border-l-4 border-slate-500 px-4 py-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
-                    Zone 1: Timeline & Integrity
-                    <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-200">
-                      {formatNumber(gapCount)}
-                    </span>
-                  </summary>
-                  <div className="border-t border-white/10 p-4">
-                    <div className="space-y-4">
-                      <details
-                        open
-                        className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
-                      >
-                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-                          Timeline gaps
-                          <span className="ml-auto rounded-full border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-200">
-                            {formatNumber(report.gaps.length)}
-                          </span>
-                        </summary>
-                        <div className="border-t border-white/10 p-3">
-                          <DetailsTable
-                            headers={["Type", "Duration", "Window", "Lines"]}
-                            rows={report.gaps.map((gap: GapEntry) => (
-                              <tr
-                                key={`${gap.start_line}-${gap.end_line}-${gap.gap_start}`}
-                                className="border-t border-white/5 hover:bg-white/[0.02]"
-                              >
-                                <td className="px-4 py-3 align-top">
-                                  <span
-                                    className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getSeverityTone(gap.severity)}`}
-                                  >
-                                    {gap.severity}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 align-top text-slate-200">
-                                  {gap.duration_human}
-                                </td>
-                                <td className="px-4 py-3 align-top text-slate-300">
-                                  {formatDate(gap.gap_start)} →{" "}
-                                  {formatDate(gap.gap_end)}
-                                </td>
-                                <td className="px-4 py-3 align-top text-slate-200">
-                                  {gap.start_line}-{gap.end_line}
-                                </td>
-                              </tr>
-                            ))}
-                            emptyText="No timeline gaps were detected."
-                          />
-                        </div>
-                      </details>
-
-                      <details
-                        open
-                        className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
-                      >
-                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-                          Time reversals
-                          <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
-                            {formatNumber(reversedGaps.length)}
-                          </span>
-                        </summary>
-                        <div className="border-t border-white/10 p-3">
-                          <DetailsTable
-                            headers={["Window", "Lines", "Severity"]}
-                            rows={reversedGaps.map((gap) => (
-                              <tr
-                                key={`${gap.start_line}-${gap.end_line}-${gap.gap_start}`}
-                                className="border-t border-white/5 hover:bg-white/[0.02]"
-                              >
-                                <td className="px-4 py-3 align-top text-slate-300">
-                                  {formatDate(gap.gap_start)} →{" "}
-                                  {formatDate(gap.gap_end)}
-                                </td>
-                                <td className="px-4 py-3 align-top text-slate-200">
-                                  {gap.start_line}-{gap.end_line}
-                                </td>
-                                <td className="px-4 py-3 align-top text-slate-200">
-                                  {gap.severity}
-                                </td>
-                              </tr>
-                            ))}
-                            emptyText="No reversals detected."
-                          />
-                        </div>
-                      </details>
-                    </div>
-                  </div>
-                </details>
-
-                <details
-                  open
-                  className="group rounded-3xl border border-white/10 bg-slate-950/40 overflow-hidden"
-                >
-                  <summary className="flex cursor-pointer list-none items-center gap-3 border-l-4 border-cyan-500 px-4 py-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
-                    Zone 2: Access & Control
-                    <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-200">
-                      {formatNumber(
-                        bruteForceActors.length + privilegeActors.length,
-                      )}
-                    </span>
-                  </summary>
-                  <div className="border-t border-white/10 p-4 space-y-4">
-                    <details
-                      open
-                      className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
-                    >
-                      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-                        Brute force activity
-                        <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
-                          {formatNumber(bruteForceActors.length)}
-                        </span>
-                      </summary>
-                      <div className="border-t border-white/10 p-3">
-                        <DetailsTable
-                          headers={["IP", "Hits", "Failures", "Span", "Tags"]}
-                          rows={bruteForceActors.map((threat: ThreatActor) => (
-                            <tr
-                              key={`bf-${threat.ip}`}
-                              className="border-t border-white/5 hover:bg-white/[0.02]"
-                            >
-                              <td className="px-4 py-3 align-top font-semibold text-white">
-                                {threat.ip}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.hits)}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.failed_attempts ?? 0)}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-300">
-                                {threat.span_human}
-                              </td>
-                              <td className="px-4 py-3 align-top">
-                                <div className="flex flex-wrap gap-2">
-                                  {threat.risk_tags.slice(0, 5).map((tag) => (
-                                    <span
-                                      key={`${threat.ip}-${tag}`}
-                                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          emptyText="No brute force activity detected."
-                        />
-                      </div>
-                    </details>
-
-                    <details
-                      open
-                      className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
-                    >
-                      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-                        Privilege escalation attempts
-                        <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
-                          {formatNumber(privilegeActors.length)}
-                        </span>
-                      </summary>
-                      <div className="border-t border-white/10 p-3">
-                        <DetailsTable
-                          headers={["IP", "Hits", "Failures", "Span", "Tags"]}
-                          rows={privilegeActors.map((threat: ThreatActor) => (
-                            <tr
-                              key={`pe-${threat.ip}`}
-                              className="border-t border-white/5 hover:bg-white/[0.02]"
-                            >
-                              <td className="px-4 py-3 align-top font-semibold text-white">
-                                {threat.ip}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.hits)}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.failed_attempts ?? 0)}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-300">
-                                {threat.span_human}
-                              </td>
-                              <td className="px-4 py-3 align-top">
-                                <div className="flex flex-wrap gap-2">
-                                  {threat.risk_tags.slice(0, 5).map((tag) => (
-                                    <span
-                                      key={`${threat.ip}-${tag}`}
-                                      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          emptyText="No privilege escalation attempts detected."
-                        />
-                      </div>
-                    </details>
-                  </div>
-                </details>
-
-                <details
-                  open
-                  className="group rounded-3xl border border-white/10 bg-slate-950/40 overflow-hidden"
-                >
-                  <summary className="flex cursor-pointer list-none items-center gap-3 border-l-4 border-emerald-500 px-4 py-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
-                    Zone 3: Obfuscation & Data
-                    <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-200">
-                      {formatNumber(obfuscationCount)}
-                    </span>
-                  </summary>
-                  <div className="border-t border-white/10 p-4 space-y-4">
-                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                      Lines with high Shannon entropy (&gt;5.0) indicate packed
-                      or encrypted payloads.
-                    </div>
-
-                    <details
-                      open
-                      className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
-                    >
-                      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-                        Obfuscated payloads
-                        <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
-                          {formatNumber(obfuscatedActors.length)}
-                        </span>
-                      </summary>
-                      <div className="border-t border-white/10 p-3">
-                        <DetailsTable
-                          headers={["IP", "Hits", "Markers"]}
-                          rows={obfuscatedActors.map((threat) => (
-                            <tr
-                              key={`ob-${threat.ip}`}
-                              className="border-t border-white/5 hover:bg-white/[0.02]"
-                            >
-                              <td className="px-4 py-3 align-top font-semibold text-white">
-                                {threat.ip}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.hits)}
-                              </td>
-                              <td className="px-4 py-3 align-top">
-                                <Badge className="border-rose-400/30 bg-rose-500/10 text-rose-100">
-                                  ENTROPY_ALERT
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                          emptyText="No obfuscated payloads detected."
-                        />
-                      </div>
-                    </details>
-
-                    <details
-                      open
-                      className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
-                    >
-                      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-                        Sensitive access & service instability
-                        <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
-                          {formatNumber(
-                            sensitiveActors.length + instabilityActors.length,
-                          )}
-                        </span>
-                      </summary>
-                      <div className="border-t border-white/10 p-3 grid gap-4 lg:grid-cols-2">
-                        <DetailsTable
-                          headers={["Sensitive access IP", "Hits", "Tags"]}
-                          rows={sensitiveActors.map((threat) => (
-                            <tr
-                              key={`sa-${threat.ip}`}
-                              className="border-t border-white/5 hover:bg-white/[0.02]"
-                            >
-                              <td className="px-4 py-3 align-top font-semibold text-white">
-                                {threat.ip}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.hits)}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-300">
-                                {threat.risk_tags.slice(0, 4).join(", ")}
-                              </td>
-                            </tr>
-                          ))}
-                          emptyText="No sensitive file access detected."
-                        />
-                        <DetailsTable
-                          headers={["Instability IP", "Hits", "Tags"]}
-                          rows={instabilityActors.map((threat) => (
-                            <tr
-                              key={`si-${threat.ip}`}
-                              className="border-t border-white/5 hover:bg-white/[0.02]"
-                            >
-                              <td className="px-4 py-3 align-top font-semibold text-white">
-                                {threat.ip}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-200">
-                                {formatNumber(threat.hits)}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-300">
-                                {threat.risk_tags.slice(0, 4).join(", ")}
-                              </td>
-                            </tr>
-                          ))}
-                          emptyText="No service instability detected."
-                        />
-                      </div>
-                    </details>
-                  </div>
-                </details>
-              </div>
-            </SectionShell>
-
-            <SectionShell
-              title="Top threat actors"
-              subtitle="The most active IPs are surfaced here, matching the structure of the generated HTML report while keeping the dashboard compact."
-              badge={
-                <Badge className="border-white/10 bg-white/5 text-slate-200">
-                  Top {topThreats.length}
-                </Badge>
-              }
-            >
-              <DetailsTable
-                headers={[
-                  "Entity (IP)",
-                  "Hits",
-                  "Failures",
-                  "Span",
-                  "Risk indicators",
-                ]}
-                rows={topThreats.map((threat) => (
-                  <tr
-                    key={threat.ip}
-                    className="border-t border-white/5 hover:bg-white/[0.02]"
-                  >
-                    <td className="px-4 py-3 align-top font-semibold text-white">
-                      {threat.ip}
-                    </td>
-                    <td className="px-4 py-3 align-top text-slate-200">
-                      {formatNumber(threat.hits)}
-                    </td>
-                    <td className="px-4 py-3 align-top text-slate-200">
-                      {formatNumber(threat.failed_attempts ?? 0)}
-                    </td>
-                    <td className="px-4 py-3 align-top text-slate-300">
-                      {threat.span_human}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="flex flex-wrap gap-2">
-                        {threat.risk_tags.slice(0, 4).map((tag) => (
-                          <span
-                            key={`${threat.ip}-${tag}`}
-                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                emptyText="No threats detected in this scan."
+        {viewMode === "dashboard" ? (
+          <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+            <ScrollReveal threshold={0.08} delayMs={20}>
+              <UploadCard
+                selectedFileName={selectedFile?.name ?? ""}
+                currentReportName={reportFileName}
+                threshold={threshold}
+                loading={loading}
+                error={error}
+                onFileChange={handleFileChange}
+                onThresholdChange={setThreshold}
+                onSubmit={handleAnalyze}
               />
-            </SectionShell>
+            </ScrollReveal>
 
-            <footer className="pb-6 text-center text-xs uppercase tracking-[0.26em] text-slate-500">
-              Evidence Protector Engine | {formatNumber(parsedLines)} parse
-              success | {formatNumber(skippedLines)} noisy lines
-            </footer>
-          </>
-        ) : (
-          <section className="rounded-[30px] border border-white/10 bg-[var(--panel)] p-8 text-center shadow-glow backdrop-blur-xl">
-            <p className="font-display text-2xl font-bold text-white">
-              No report loaded yet
-            </p>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              The dashboard will hydrate automatically from the latest cached
-              analysis, or you can upload a new log file to generate a fresh
-              forensic report.
-            </p>
+            <ScrollReveal threshold={0.08} delayMs={120}>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <RiskMeter score={riskScore} />
+                <div className="rounded-3xl border border-white/10 bg-[var(--panel)] p-5 shadow-glow backdrop-blur-xl">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                    Evidence summary
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
+                    <MetricCard
+                      label="Timeline anomalies"
+                      value={
+                        <CountUp
+                          to={gapCount}
+                          duration={1.2}
+                          separator=","
+                          startWhen
+                        />
+                      }
+                      detail={`${criticalGaps.length} critical gaps`}
+                    />
+                    <MetricCard
+                      label="Threat actors"
+                      value={
+                        <CountUp
+                          to={threatCount}
+                          duration={1.2}
+                          separator=","
+                          startWhen
+                        />
+                      }
+                      detail={`${bruteForceActors.length} brute-force targets`}
+                    />
+                    <MetricCard
+                      label="Parsed lines"
+                      value={
+                        <CountUp
+                          to={parsedLines}
+                          duration={1.4}
+                          separator=","
+                          startWhen
+                        />
+                      }
+                      detail={`of ${formatNumber(totalLines)} total lines`}
+                    />
+                    <MetricCard
+                      label="Obfuscation"
+                      value={
+                        <CountUp
+                          to={obfuscationCount}
+                          duration={1.2}
+                          separator=","
+                          startWhen
+                        />
+                      }
+                      detail={`${skippedLines} noisy lines skipped`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
           </section>
-        )}
+        ) : null}
+
+        {viewMode === "dashboard" ? (
+          report ? (
+            <>
+              <SectionShell
+                title="System context"
+                subtitle="The generated dashboard preserves the system, performance, and file metadata already present in the forensic report."
+                badge={
+                  <Badge className="border-white/10 bg-white/5 text-slate-200">
+                    {report.stats.log_type}
+                  </Badge>
+                }
+              >
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100/80">
+                      Host
+                    </p>
+                    <p className="mt-2 font-display text-2xl font-bold text-white">
+                      {report.system_info.host}
+                    </p>
+                    <p className="mt-1 text-sm text-cyan-50/80">
+                      {report.system_info.os}
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-100/80">
+                      Processor
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-white">
+                      {report.system_info.cpu || "Unknown"}
+                    </p>
+                    <p className="mt-1 text-sm text-fuchsia-50/80">
+                      {report.system_info.arch} architecture
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100/80">
+                      Processing time
+                    </p>
+                    <p className="mt-2 font-display text-2xl font-bold text-white">
+                      {report.performance.time}s
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-50/80">
+                      {report.performance.lps.toLocaleString()} lines/sec
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-100/80">
+                      Log span
+                    </p>
+                    <p className="mt-2 font-display text-2xl font-bold text-white">
+                      {formatDuration(report.stats.log_span_sec)}
+                    </p>
+                    <p className="mt-1 text-sm text-amber-50/80">
+                      Scanned at {formatDate(report.system_info.ts)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        File metadata
+                      </p>
+                      <Badge className="border-white/10 bg-white/5 text-slate-200">
+                        {report.file_info?.extension || "LOG"}
+                      </Badge>
+                    </div>
+                    <div className="space-y-3 text-sm text-slate-300">
+                      <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">File</span>
+                        <span className="font-semibold text-white break-all">
+                          {report.file_info?.filename ?? reportFileName}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Path</span>
+                        <span className="font-mono text-[12px] leading-6 text-slate-200 break-all">
+                          {report.file_info?.path ??
+                            report.analysis_source ??
+                            "—"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Size</span>
+                        <span className="font-semibold text-white">
+                          {formatBytes(report.file_info?.size_bytes)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Modified</span>
+                        <span className="font-semibold text-white">
+                          {formatDate(report.file_info?.modified_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        Processing intelligence
+                      </p>
+                      <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100">
+                        {report.stats.log_type}
+                      </Badge>
+                    </div>
+                    <div className="space-y-3 text-sm text-slate-300">
+                      <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Total lines</span>
+                        <span className="font-semibold text-white">
+                          {formatNumber(report.stats.total_lines)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Parsed lines</span>
+                        <span className="font-semibold text-white">
+                          {formatNumber(report.stats.parsed_lines)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Skipped lines</span>
+                        <span className="font-semibold text-white">
+                          {formatNumber(report.stats.skipped_lines)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr] sm:gap-2">
+                        <span className="text-slate-400">Threshold</span>
+                        <span className="font-semibold text-white">
+                          {report.threshold_seconds ?? threshold} sec
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </SectionShell>
+
+              <SectionShell
+                title="Activity timeline"
+                subtitle="Time is plotted on the X axis and the number of suspicious activities is plotted on the Y axis."
+                badge={
+                  <Badge className="border-white/10 bg-white/5 text-slate-200">
+                    {activityTimeline.length} time buckets
+                  </Badge>
+                }
+              >
+                <ActivityTimelineChart
+                  buckets={activityTimeline}
+                  theme={theme}
+                />
+              </SectionShell>
+
+              <SectionShell
+                title="Threat bubble map"
+                subtitle="A creative bubble plot where each threat actor is placed by behavior intensity and complexity, with bubble size indicating actor volume."
+                badge={
+                  <Badge className="border-white/10 bg-white/5 text-slate-200">
+                    {bubblePoints.length} actors plotted
+                  </Badge>
+                }
+              >
+                <BubblePlot points={bubblePoints} theme={theme} />
+              </SectionShell>
+
+              <SectionShell
+                title="Forensic reconstruction"
+                subtitle="This narrative mirrors the report snapshot: anomaly count, actor count, and the most active source are surfaced up front."
+                badge={
+                  <Badge className="border-slate-500/30 bg-white/5 text-slate-200">
+                    Generated{" "}
+                    {formatDate(
+                      report.analysis_generated_at ?? report.server_timestamp,
+                    )}
+                  </Badge>
+                }
+              >
+                <div className="rounded-[28px] border-l-4 border-cyan-400 bg-slate-950/70 p-5 text-slate-200 shadow-inner shadow-cyan-950/20">
+                  <p className="text-sm leading-7 text-slate-300">
+                    Analysis of{" "}
+                    <span className="font-semibold text-white">
+                      {formatNumber(report.stats.total_lines)}
+                    </span>{" "}
+                    lines revealed{" "}
+                    <span className="font-semibold text-white">
+                      {formatNumber(threatCount)}
+                    </span>{" "}
+                    actors. Integrity confidence is{" "}
+                    <span className="font-semibold text-white">
+                      {report.gaps.length > 0 ? "LOW" : "HIGH"}
+                    </span>
+                    . The most significant finding is{" "}
+                    <span className="font-semibold text-white">
+                      {topThreat ? formatNumber(topThreat.hits) : 0}
+                    </span>{" "}
+                    logged events from a single source IP.
+                  </p>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <MetricCard
+                      label="Top actor"
+                      value={topThreat?.ip ?? "None"}
+                      detail={`${topThreat ? formatNumber(topThreat.hits) : 0} hits`}
+                    />
+                    <MetricCard
+                      label="Threat tags"
+                      value={
+                        <CountUp
+                          to={topThreat?.risk_tags?.length ?? 0}
+                          duration={1}
+                          separator=","
+                          startWhen
+                        />
+                      }
+                      detail={
+                        topThreat?.risk_tags?.slice(0, 3).join(", ") ||
+                        "No tags"
+                      }
+                    />
+                    <MetricCard
+                      label="Risk score"
+                      value={
+                        <>
+                          <CountUp
+                            to={riskScore}
+                            duration={1.1}
+                            separator=","
+                            startWhen
+                          />
+                          %
+                        </>
+                      }
+                      detail="Computed from timeline and behavior"
+                    />
+                  </div>
+                </div>
+              </SectionShell>
+
+              <SectionShell
+                title="Categorized forensic evidence"
+                subtitle="The dashboard preserves the report's zoning structure while keeping the upload workflow on the same page."
+                badge={
+                  <Badge className="border-white/10 bg-white/5 text-slate-200">
+                    {reversedGaps.length + criticalGaps.length} integrity events
+                  </Badge>
+                }
+              >
+                <div className="space-y-4">
+                  <details
+                    open
+                    className="group rounded-3xl border border-white/10 bg-slate-950/40 overflow-hidden"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center gap-3 border-l-4 border-slate-500 px-4 py-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
+                      Zone 1: Timeline & Integrity
+                      <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                        {formatNumber(gapCount)}
+                      </span>
+                    </summary>
+                    <div className="border-t border-white/10 p-4">
+                      <div className="space-y-4">
+                        <details
+                          open
+                          className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                        >
+                          <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                            Timeline gaps
+                            <span className="ml-auto rounded-full border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-200">
+                              {formatNumber(report.gaps.length)}
+                            </span>
+                          </summary>
+                          <div className="border-t border-white/10 p-3">
+                            <DetailsTable
+                              headers={["Type", "Duration", "Window", "Lines"]}
+                              rows={report.gaps.map((gap: GapEntry) => (
+                                <tr
+                                  key={`${gap.start_line}-${gap.end_line}-${gap.gap_start}`}
+                                  className="border-t border-white/5 hover:bg-white/[0.02]"
+                                >
+                                  <td className="px-4 py-3 align-top">
+                                    <span
+                                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getSeverityTone(gap.severity)}`}
+                                    >
+                                      {gap.severity}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-200">
+                                    {gap.duration_human}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-300">
+                                    {formatDate(gap.gap_start)} →{" "}
+                                    {formatDate(gap.gap_end)}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-200">
+                                    {gap.start_line}-{gap.end_line}
+                                  </td>
+                                </tr>
+                              ))}
+                              emptyText="No timeline gaps were detected."
+                            />
+                          </div>
+                        </details>
+
+                        <details
+                          open
+                          className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                        >
+                          <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                            Time reversals
+                            <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
+                              {formatNumber(reversedGaps.length)}
+                            </span>
+                          </summary>
+                          <div className="border-t border-white/10 p-3">
+                            <DetailsTable
+                              headers={["Window", "Lines", "Severity"]}
+                              rows={reversedGaps.map((gap) => (
+                                <tr
+                                  key={`${gap.start_line}-${gap.end_line}-${gap.gap_start}`}
+                                  className="border-t border-white/5 hover:bg-white/[0.02]"
+                                >
+                                  <td className="px-4 py-3 align-top text-slate-300">
+                                    {formatDate(gap.gap_start)} →{" "}
+                                    {formatDate(gap.gap_end)}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-200">
+                                    {gap.start_line}-{gap.end_line}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-200">
+                                    {gap.severity}
+                                  </td>
+                                </tr>
+                              ))}
+                              emptyText="No reversals detected."
+                            />
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details
+                    open
+                    className="group rounded-3xl border border-white/10 bg-slate-950/40 overflow-hidden"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center gap-3 border-l-4 border-cyan-500 px-4 py-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
+                      Zone 2: Access & Control
+                      <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                        {formatNumber(
+                          bruteForceActors.length + privilegeActors.length,
+                        )}
+                      </span>
+                    </summary>
+                    <div className="border-t border-white/10 p-4 space-y-4">
+                      <details
+                        open
+                        className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                      >
+                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                          Brute force activity
+                          <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
+                            {formatNumber(bruteForceActors.length)}
+                          </span>
+                        </summary>
+                        <div className="border-t border-white/10 p-3">
+                          <DetailsTable
+                            headers={["IP", "Hits", "Failures", "Span", "Tags"]}
+                            rows={bruteForceActors.map(
+                              (threat: ThreatActor) => (
+                                <tr
+                                  key={`bf-${threat.ip}`}
+                                  className="border-t border-white/5 hover:bg-white/[0.02]"
+                                >
+                                  <td className="px-4 py-3 align-top font-semibold text-white">
+                                    {threat.ip}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-200">
+                                    {formatNumber(threat.hits)}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-200">
+                                    {formatNumber(threat.failed_attempts ?? 0)}
+                                  </td>
+                                  <td className="px-4 py-3 align-top text-slate-300">
+                                    {threat.span_human}
+                                  </td>
+                                  <td className="px-4 py-3 align-top">
+                                    <div className="flex flex-wrap gap-2">
+                                      {threat.risk_tags
+                                        .slice(0, 5)
+                                        .map((tag) => (
+                                          <span
+                                            key={`${threat.ip}-${tag}`}
+                                            className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100"
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ),
+                            )}
+                            emptyText="No brute force activity detected."
+                          />
+                        </div>
+                      </details>
+
+                      <details
+                        open
+                        className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                      >
+                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                          Privilege escalation attempts
+                          <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
+                            {formatNumber(privilegeActors.length)}
+                          </span>
+                        </summary>
+                        <div className="border-t border-white/10 p-3">
+                          <DetailsTable
+                            headers={["IP", "Hits", "Failures", "Span", "Tags"]}
+                            rows={privilegeActors.map((threat: ThreatActor) => (
+                              <tr
+                                key={`pe-${threat.ip}`}
+                                className="border-t border-white/5 hover:bg-white/[0.02]"
+                              >
+                                <td className="px-4 py-3 align-top font-semibold text-white">
+                                  {threat.ip}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-200">
+                                  {formatNumber(threat.hits)}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-200">
+                                  {formatNumber(threat.failed_attempts ?? 0)}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-300">
+                                  {threat.span_human}
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                  <div className="flex flex-wrap gap-2">
+                                    {threat.risk_tags.slice(0, 5).map((tag) => (
+                                      <span
+                                        key={`${threat.ip}-${tag}`}
+                                        className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                            emptyText="No privilege escalation attempts detected."
+                          />
+                        </div>
+                      </details>
+                    </div>
+                  </details>
+
+                  <details
+                    open
+                    className="group rounded-3xl border border-white/10 bg-slate-950/40 overflow-hidden"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center gap-3 border-l-4 border-emerald-500 px-4 py-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
+                      Zone 3: Obfuscation & Data
+                      <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                        {formatNumber(obfuscationCount)}
+                      </span>
+                    </summary>
+                    <div className="border-t border-white/10 p-4 space-y-4">
+                      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                        Lines with high Shannon entropy (&gt;5.0) indicate
+                        packed or encrypted payloads.
+                      </div>
+
+                      <details
+                        open
+                        className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                      >
+                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                          Obfuscated payloads
+                          <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
+                            {formatNumber(obfuscatedActors.length)}
+                          </span>
+                        </summary>
+                        <div className="border-t border-white/10 p-3">
+                          <DetailsTable
+                            headers={["IP", "Hits", "Markers"]}
+                            rows={obfuscatedActors.map((threat) => (
+                              <tr
+                                key={`ob-${threat.ip}`}
+                                className="border-t border-white/5 hover:bg-white/[0.02]"
+                              >
+                                <td className="px-4 py-3 align-top font-semibold text-white">
+                                  {threat.ip}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-200">
+                                  {formatNumber(threat.hits)}
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                  <Badge className="border-rose-400/30 bg-rose-500/10 text-rose-100">
+                                    ENTROPY_ALERT
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                            emptyText="No obfuscated payloads detected."
+                          />
+                        </div>
+                      </details>
+
+                      <details
+                        open
+                        className="group rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                      >
+                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                          Sensitive access & service instability
+                          <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">
+                            {formatNumber(
+                              sensitiveActors.length + instabilityActors.length,
+                            )}
+                          </span>
+                        </summary>
+                        <div className="border-t border-white/10 p-3 grid gap-4 lg:grid-cols-2">
+                          <DetailsTable
+                            headers={["Sensitive access IP", "Hits", "Tags"]}
+                            rows={sensitiveActors.map((threat) => (
+                              <tr
+                                key={`sa-${threat.ip}`}
+                                className="border-t border-white/5 hover:bg-white/[0.02]"
+                              >
+                                <td className="px-4 py-3 align-top font-semibold text-white">
+                                  {threat.ip}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-200">
+                                  {formatNumber(threat.hits)}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-300">
+                                  {threat.risk_tags.slice(0, 4).join(", ")}
+                                </td>
+                              </tr>
+                            ))}
+                            emptyText="No sensitive file access detected."
+                          />
+                          <DetailsTable
+                            headers={["Instability IP", "Hits", "Tags"]}
+                            rows={instabilityActors.map((threat) => (
+                              <tr
+                                key={`si-${threat.ip}`}
+                                className="border-t border-white/5 hover:bg-white/[0.02]"
+                              >
+                                <td className="px-4 py-3 align-top font-semibold text-white">
+                                  {threat.ip}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-200">
+                                  {formatNumber(threat.hits)}
+                                </td>
+                                <td className="px-4 py-3 align-top text-slate-300">
+                                  {threat.risk_tags.slice(0, 4).join(", ")}
+                                </td>
+                              </tr>
+                            ))}
+                            emptyText="No service instability detected."
+                          />
+                        </div>
+                      </details>
+                    </div>
+                  </details>
+                </div>
+              </SectionShell>
+
+              <SectionShell
+                title="Top threat actors"
+                subtitle="The most active IPs are surfaced here, matching the structure of the generated HTML report while keeping the dashboard compact."
+                badge={
+                  <Badge className="border-white/10 bg-white/5 text-slate-200">
+                    Top {topThreats.length}
+                  </Badge>
+                }
+              >
+                <DetailsTable
+                  headers={[
+                    "Entity (IP)",
+                    "Hits",
+                    "Failures",
+                    "Span",
+                    "Risk indicators",
+                  ]}
+                  rows={topThreats.map((threat) => (
+                    <tr
+                      key={threat.ip}
+                      className="border-t border-white/5 hover:bg-white/[0.02]"
+                    >
+                      <td className="px-4 py-3 align-top font-semibold text-white">
+                        {threat.ip}
+                      </td>
+                      <td className="px-4 py-3 align-top text-slate-200">
+                        {formatNumber(threat.hits)}
+                      </td>
+                      <td className="px-4 py-3 align-top text-slate-200">
+                        {formatNumber(threat.failed_attempts ?? 0)}
+                      </td>
+                      <td className="px-4 py-3 align-top text-slate-300">
+                        {threat.span_human}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-wrap gap-2">
+                          {threat.risk_tags.slice(0, 4).map((tag) => (
+                            <span
+                              key={`${threat.ip}-${tag}`}
+                              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  emptyText="No threats detected in this scan."
+                />
+              </SectionShell>
+            </>
+          ) : (
+            <section className="rounded-[30px] border border-white/10 bg-[var(--panel)] p-8 text-center shadow-glow backdrop-blur-xl">
+              <p className="font-display text-2xl font-bold text-white">
+                No report loaded yet
+              </p>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                The dashboard will hydrate automatically from the latest cached
+                analysis, or you can upload a new log file to generate a fresh
+                forensic report.
+              </p>
+            </section>
+          )
+        ) : null}
+
+        <footer className="pt-2 pb-6 text-center text-[11px] text-slate-400">
+          Log Detector and Foreign Threat Analysis
+        </footer>
       </main>
     </div>
   );

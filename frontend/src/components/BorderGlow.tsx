@@ -3,6 +3,7 @@ import {
   useCallback,
   useState,
   useEffect,
+  useMemo,
   type CSSProperties,
   type PointerEvent,
   type ReactNode,
@@ -141,10 +142,14 @@ export default function BorderGlow({
   fillOpacity = 0.5,
 }: BorderGlowProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<number | null>(null);
+  const latestPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const lastRenderedRef = useRef({ angle: 45, proximity: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const [cursorAngle, setCursorAngle] = useState(45);
   const [edgeProximity, setEdgeProximity] = useState(0);
   const [sweepActive, setSweepActive] = useState(false);
+  const [interactiveEnabled, setInteractiveEnabled] = useState(true);
 
   const getCenterOfElement = useCallback((el: HTMLElement) => {
     const { width, height } = el.getBoundingClientRect();
@@ -181,16 +186,46 @@ export default function BorderGlow({
 
   const handlePointerMove = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
+      if (!interactiveEnabled) return;
       const card = cardRef.current;
       if (!card) return;
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      setEdgeProximity(getEdgeProximity(card, x, y));
-      setCursorAngle(getCursorAngle(card, x, y));
+      const cardRect = card.getBoundingClientRect();
+      latestPointerRef.current = {
+        x: e.clientX - cardRect.left,
+        y: e.clientY - cardRect.top,
+      };
+
+      if (frameRef.current !== null) return;
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        const latest = latestPointerRef.current;
+        if (!latest) return;
+        const nextProximity = getEdgeProximity(card, latest.x, latest.y);
+        const nextAngle = getCursorAngle(card, latest.x, latest.y);
+
+        if (
+          Math.abs(nextProximity - lastRenderedRef.current.proximity) > 0.01
+        ) {
+          lastRenderedRef.current.proximity = nextProximity;
+          setEdgeProximity(nextProximity);
+        }
+        if (Math.abs(nextAngle - lastRenderedRef.current.angle) > 0.8) {
+          lastRenderedRef.current.angle = nextAngle;
+          setCursorAngle(nextAngle);
+        }
+      });
     },
-    [getEdgeProximity, getCursorAngle],
+    [getEdgeProximity, getCursorAngle, interactiveEnabled],
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(pointer: coarse)");
+    const onChange = () => setInteractiveEnabled(!media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (!animated) return;
@@ -230,6 +265,14 @@ export default function BorderGlow({
     });
   }, [animated]);
 
+  useEffect(() => {
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
   const colorSensitivity = edgeSensitivity + 20;
   const isVisible = isHovered || sweepActive;
   const borderOpacity = isVisible
@@ -245,7 +288,11 @@ export default function BorderGlow({
       )
     : 0;
 
-  const meshGradients = buildMeshGradients(colors);
+  const meshGradients = useMemo(() => buildMeshGradients(colors), [colors]);
+  const glowShadow = useMemo(
+    () => buildBoxShadow(glowColor, glowIntensity),
+    [glowColor, glowIntensity],
+  );
   const borderBg = meshGradients.map((g) => `${g} border-box`);
   const fillBg = meshGradients.map((g) => `${g} padding-box`);
   const angleDeg = `${cursorAngle.toFixed(3)}deg`;
@@ -255,7 +302,10 @@ export default function BorderGlow({
       ref={cardRef}
       onPointerMove={handlePointerMove}
       onPointerEnter={() => setIsHovered(true)}
-      onPointerLeave={() => setIsHovered(false)}
+      onPointerLeave={() => {
+        setIsHovered(false);
+        latestPointerRef.current = null;
+      }}
       className={`relative grid isolate border border-white/15 ${className}`}
       style={{
         background: backgroundColor,
@@ -338,7 +388,7 @@ export default function BorderGlow({
           className="absolute rounded-[inherit]"
           style={{
             inset: `${glowRadius}px`,
-            boxShadow: buildBoxShadow(glowColor, glowIntensity),
+            boxShadow: glowShadow,
           }}
         />
       </span>
