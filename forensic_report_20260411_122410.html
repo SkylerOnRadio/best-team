@@ -1,0 +1,134 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            :root {
+                --primary: #111827;
+                --secondary: #4b5563;
+                --danger: #ef4444;
+                --warning: #f59e0b;
+                --success: #10b981;
+                --bg: #f3f4f6;
+                --card-bg: #ffffff;
+            }
+            body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--primary); padding: 20px; line-height: 1.6; }
+            .container { max-width: 1000px; margin: 0 auto; }
+            .card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; }
+            h1, h2, h3 { color: var(--primary); margin: 0 0 15px 0; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+            
+            .risk-meter { height: 28px; background: #e5e7eb; border-radius: 14px; overflow: hidden; margin: 15px 0; position: relative; }
+            .risk-fill { height: 100%; background: #ef4444; width: 100% }
+            .risk-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+            
+            details { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; }
+            details[open] { padding-bottom: 10px; }
+            summary { padding: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; list-style: none; }
+            summary::-webkit-details-marker { display: none; }
+            summary:after { content: '▶'; margin-left: auto; transition: transform 0.2s; font-size: 12px; }
+            details[open] summary:after { transform: rotate(90deg); }
+            summary:hover { background: #f3f4f6; }
+            
+            table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+            th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+            th { background: #f3f4f6; color: var(--secondary); font-size: 12px; text-transform: uppercase; }
+            
+            .tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+            .tag-red { background: #fee2e2; color: #991b1b; }
+            .tag-blue { background: #dbeafe; color: #1e40af; }
+            .tag-yellow { background: #fef3c7; color: #92400e; }
+            
+            .metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
+            .metric:last-child { border: none; }
+            .label { color: var(--secondary); font-size: 14px; }
+            .value { font-weight: 600; }
+        </style>
+        <title>Forensic Evidence Report</title>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <h1>🛡️ Evidence Protector v2.5</h1>
+                <p style="color: var(--secondary);">Integrity Audit: <strong>Windows_2k.log</strong></p>
+                <div class="risk-meter">
+                    <div class="risk-fill"></div>
+                    <span class="risk-text">RISK SCORE: 100/100</span>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2>💻 System Context</h2>
+                    <div class="metric"><span class="label">Hostname</span><span class="value">kali</span></div>
+                    <div class="metric"><span class="label">OS</span><span class="value">Linux (6.18.12+kali-amd64)</span></div>
+                    <div class="metric"><span class="label">Architecture</span><span class="value">x86_64</span></div>
+                </div>
+                <div class="card">
+                    <h2>📊 Scan Metadata</h2>
+                    <div class="metric"><span class="label">Log Type</span><span class="value">ISO-8601</span></div>
+                    <div class="metric"><span class="label">Processing Time</span><span class="value">0.0267s</span></div>
+                    <div class="metric"><span class="label">Throughput</span><span class="value">74,962.54 L/s</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📁 Category Overview</h2>
+                
+                <details>
+                    <summary>Timeline Gaps (3)</summary>
+                    <div style="padding: 0 15px;">
+                        
+                        <table>
+                            <thead><tr><th>Start</th><th>End</th><th>Duration</th><th>Severity</th></tr></thead>
+                            <tbody>
+                                <tr><td>2016-09-28T04:32:17</td><td>2016-09-28T04:40:53</td><td>8m 36s</td><td><span class='tag tag-yellow'>MEDIUM</span></td></tr><tr><td>2016-09-28T04:40:55</td><td>2016-09-29T00:00:44</td><td>19h 19m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr><tr><td>2016-09-29T00:03:25</td><td>2016-09-29T02:03:46</td><td>2h 0m</td><td><span class='tag tag-yellow'>CRITICAL</span></td></tr>
+                            </tbody>
+                        </table>
+                        
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Time Reversals (0)</summary>
+                    <div style="padding: 0 15px;">
+                        <p>No reversals detected.</p>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Threat Actors (2)</summary>
+                    <div style="padding: 0 15px;">
+                        
+                        <table>
+                            <thead><tr><th>IP Address</th><th>Hits</th><th>Span</th><th>Tags</th></tr></thead>
+                            <tbody>
+                                <tr><td><strong>6.1.1.0</strong></td><td>229</td><td>21h 34m</td><td></td></tr><tr><td><strong>6.1.1.1</strong></td><td>139</td><td>21h 34m</td><td></td></tr>
+                            </tbody>
+                        </table>
+                        
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Show All Raw Anomalies (3)</summary>
+                    <div style="padding: 0 15px;">
+                        <table>
+                            <thead><tr><th>Type</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
+                            <tbody>
+                                <tr><td><span class='tag tag-red'>GAP</span></td><td>8m 36s</td><td>2016-09-28T04:32:17 -> 2016-09-28T04:40:53</td><td>936 - 937</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>19h 19m</td><td>2016-09-28T04:40:55 -> 2016-09-29T00:00:44</td><td>953 - 954</td></tr><tr><td><span class='tag tag-red'>GAP</span></td><td>2h 0m</td><td>2016-09-29T00:03:25 -> 2016-09-29T02:03:46</td><td>1103 - 1104</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+            
+            <footer style="text-align: center; color: var(--secondary); font-size: 12px; margin-top: 20px;">
+                Evidence Protector Engine v2.5 | 2026-04-11 12:24:10
+            </footer>
+        </div>
+    </body>
+    </html>
+    
