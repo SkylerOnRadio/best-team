@@ -32445,36 +32445,36 @@
     {
       "ip": "192.168.1.1",
       "risk_tags": [
+        "OBFUSCATED_PAYLOAD",
         "SUSPICIOUS_TIMING",
         "UNUSUAL"
       ],
       "hits": 424,
       "failed_attempts": 0,
-      "off_hours_ratio": "36.6%",
       "span_human": "22h 1m",
       "last_active": "2024-01-16T06:01:25"
     },
     {
       "ip": "1.1.1.1",
       "risk_tags": [
+        "OBFUSCATED_PAYLOAD",
         "SUSPICIOUS_TIMING",
         "UNUSUAL"
       ],
       "hits": 397,
       "failed_attempts": 0,
-      "off_hours_ratio": "38.5%",
       "span_human": "21h 42m",
       "last_active": "2024-01-16T05:43:20"
     },
     {
       "ip": "8.8.8.8",
       "risk_tags": [
+        "OBFUSCATED_PAYLOAD",
         "SUSPICIOUS_TIMING",
         "UNUSUAL"
       ],
       "hits": 431,
       "failed_attempts": 0,
-      "off_hours_ratio": "36.2%",
       "span_human": "22h 1m",
       "last_active": "2024-01-16T06:02:46"
     },
@@ -32489,7 +32489,6 @@
       ],
       "hits": 536,
       "failed_attempts": 536,
-      "off_hours_ratio": "33.4%",
       "span_human": "22h 5m",
       "last_active": "2026-01-16T06:08:01"
     },
@@ -32502,7 +32501,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "33.3%",
       "span_human": "14h 12m",
       "last_active": "2026-01-15T22:15:41"
     },
@@ -32517,7 +32515,6 @@
       ],
       "hits": 546,
       "failed_attempts": 546,
-      "off_hours_ratio": "34.6%",
       "span_human": "21h 59m",
       "last_active": "2026-01-16T06:03:16"
     },
@@ -32532,7 +32529,6 @@
       ],
       "hits": 558,
       "failed_attempts": 558,
-      "off_hours_ratio": "36.6%",
       "span_human": "22h 1m",
       "last_active": "2026-01-16T06:06:36"
     },
@@ -32544,7 +32540,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T08:15:51"
     },
@@ -32556,7 +32551,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "1h 7m",
       "last_active": "2026-01-15T09:29:18"
     },
@@ -32568,7 +32562,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "6h 2m",
       "last_active": "2026-01-15T14:35:55"
     },
@@ -32580,7 +32573,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T08:49:12"
     },
@@ -32593,7 +32585,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "16h 37m",
       "last_active": "2026-01-16T01:34:52"
     },
@@ -32605,7 +32596,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T08:59:06"
     },
@@ -32617,7 +32607,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:00:03"
     },
@@ -32629,7 +32618,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:04:23"
     },
@@ -32642,7 +32630,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "33.3%",
       "span_human": "18h 33m",
       "last_active": "2026-01-16T03:38:34"
     },
@@ -32655,7 +32642,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "66.7%",
       "span_human": "16h 25m",
       "last_active": "2026-01-16T01:31:57"
     },
@@ -32667,7 +32653,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:19:01"
     },
@@ -32679,7 +32664,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:19:06"
     },
@@ -32691,7 +32675,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:23:47"
     },
@@ -32704,7 +32687,6 @@
       ],
       "hits": 4,
       "failed_attempts": 0,
-      "off_hours_ratio": "25.0%",
       "span_human": "17h 21m",
       "last_active": "2026-01-16T02:45:16"
     },
@@ -32716,7 +32698,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:24:23"
     },
@@ -32728,7 +32709,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:29:04"
     },
@@ -32740,7 +32720,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "8h 17m",
       "last_active": "2026-01-15T17:47:24"
     },
@@ -32752,7 +32731,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:31:26"
     },
@@ -32764,7 +32742,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:32:39"
     },
@@ -32776,7 +32753,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:34:12"
     },
@@ -32788,7 +32764,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:43:03"
     },
@@ -32800,7 +32775,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:48:24"
     },
@@ -32812,7 +32786,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T09:51:55"
     },
@@ -32824,7 +32797,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "4h 32m",
       "last_active": "2026-01-15T14:34:05"
     },
@@ -32836,7 +32808,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "3m 54s",
       "last_active": "2026-01-15T10:12:52"
     },
@@ -32848,7 +32819,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T10:13:53"
     },
@@ -32860,7 +32830,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T10:14:22"
     },
@@ -32872,7 +32841,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "10h 40m",
       "last_active": "2026-01-15T20:55:20"
     },
@@ -32884,7 +32852,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T10:28:40"
     },
@@ -32896,7 +32863,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T10:30:11"
     },
@@ -32908,7 +32874,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T10:39:23"
     },
@@ -32920,7 +32885,6 @@
       ],
       "hits": 4,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "8h 50m",
       "last_active": "2026-01-15T19:37:58"
     },
@@ -32932,7 +32896,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "10h 32m",
       "last_active": "2026-01-15T21:25:01"
     },
@@ -32944,7 +32907,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T11:12:50"
     },
@@ -32956,7 +32918,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T11:16:21"
     },
@@ -32968,7 +32929,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T11:17:25"
     },
@@ -32980,7 +32940,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T11:27:01"
     },
@@ -32993,7 +32952,6 @@
       ],
       "hits": 4,
       "failed_attempts": 0,
-      "off_hours_ratio": "75.0%",
       "span_human": "14h 50m",
       "last_active": "2026-01-16T02:18:50"
     },
@@ -33005,7 +32963,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "5h 34m",
       "last_active": "2026-01-15T17:07:17"
     },
@@ -33018,7 +32975,6 @@
       ],
       "hits": 4,
       "failed_attempts": 0,
-      "off_hours_ratio": "25.0%",
       "span_human": "16h 30m",
       "last_active": "2026-01-16T04:05:50"
     },
@@ -33031,7 +32987,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "12h 30m",
       "last_active": "2026-01-16T00:09:35"
     },
@@ -33044,7 +32999,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "11h 26m",
       "last_active": "2026-01-15T23:06:12"
     },
@@ -33056,7 +33010,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T11:41:53"
     },
@@ -33068,7 +33021,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "7h 7m",
       "last_active": "2026-01-15T18:55:26"
     },
@@ -33080,7 +33032,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "2h 1m",
       "last_active": "2026-01-15T13:50:12"
     },
@@ -33092,7 +33043,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T11:48:38"
     },
@@ -33105,7 +33055,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "16h 55m",
       "last_active": "2026-01-16T04:55:08"
     },
@@ -33117,7 +33066,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "8h 10m",
       "last_active": "2026-01-15T20:20:11"
     },
@@ -33129,7 +33077,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "7h 31m",
       "last_active": "2026-01-15T19:47:28"
     },
@@ -33142,7 +33089,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "17h 21m",
       "last_active": "2026-01-16T05:38:40"
     },
@@ -33154,7 +33100,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T12:17:39"
     },
@@ -33167,7 +33112,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "33.3%",
       "span_human": "13h 47m",
       "last_active": "2026-01-16T02:37:27"
     },
@@ -33179,7 +33123,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "5h 23m",
       "last_active": "2026-01-15T18:13:25"
     },
@@ -33191,7 +33134,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "1h 58m",
       "last_active": "2026-01-15T14:56:58"
     },
@@ -33203,7 +33145,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:01:52"
     },
@@ -33215,7 +33156,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "7h 0m",
       "last_active": "2026-01-15T20:06:29"
     },
@@ -33227,7 +33167,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:06:55"
     },
@@ -33239,7 +33178,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:11:43"
     },
@@ -33251,7 +33189,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:21:43"
     },
@@ -33264,7 +33201,6 @@
       ],
       "hits": 4,
       "failed_attempts": 0,
-      "off_hours_ratio": "75.0%",
       "span_human": "15h 14m",
       "last_active": "2026-01-16T04:39:41"
     },
@@ -33276,7 +33212,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:33:51"
     },
@@ -33288,7 +33223,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:44:43"
     },
@@ -33300,7 +33234,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T13:50:05"
     },
@@ -33312,7 +33245,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T14:21:51"
     },
@@ -33324,7 +33256,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T14:25:37"
     },
@@ -33336,7 +33267,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "1h 40m",
       "last_active": "2026-01-15T16:07:12"
     },
@@ -33348,7 +33278,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T14:30:26"
     },
@@ -33360,7 +33289,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T14:33:42"
     },
@@ -33372,7 +33300,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "3h 23m",
       "last_active": "2026-01-15T18:16:05"
     },
@@ -33384,7 +33311,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T15:06:08"
     },
@@ -33397,7 +33323,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "33.3%",
       "span_human": "11h 7m",
       "last_active": "2026-01-16T02:21:08"
     },
@@ -33409,7 +33334,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "31m 23s",
       "last_active": "2026-01-15T15:46:26"
     },
@@ -33421,7 +33345,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T15:18:12"
     },
@@ -33433,7 +33356,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T15:19:41"
     },
@@ -33445,7 +33367,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "3h 17m",
       "last_active": "2026-01-15T18:38:10"
     },
@@ -33457,7 +33378,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T15:30:16"
     },
@@ -33470,7 +33390,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "66.7%",
       "span_human": "8h 51m",
       "last_active": "2026-01-16T00:43:28"
     },
@@ -33482,7 +33401,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "2h 6m",
       "last_active": "2026-01-15T18:03:27"
     },
@@ -33494,7 +33412,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T16:05:22"
     },
@@ -33507,7 +33424,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "9h 8m",
       "last_active": "2026-01-16T01:18:57"
     },
@@ -33519,7 +33435,6 @@
       ],
       "hits": 3,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "13h 55m",
       "last_active": "2026-01-16T06:07:33"
     },
@@ -33531,7 +33446,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T16:18:21"
     },
@@ -33543,7 +33457,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T16:19:41"
     },
@@ -33555,7 +33468,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T16:19:50"
     },
@@ -33567,7 +33479,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "1h 18m",
       "last_active": "2026-01-15T17:46:35"
     },
@@ -33579,7 +33490,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T16:33:30"
     },
@@ -33592,7 +33502,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "6h 34m",
       "last_active": "2026-01-15T23:16:58"
     },
@@ -33605,7 +33514,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "10h 16m",
       "last_active": "2026-01-16T03:00:06"
     },
@@ -33617,7 +33525,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T16:53:07"
     },
@@ -33630,7 +33537,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "11h 3m",
       "last_active": "2026-01-16T04:08:13"
     },
@@ -33643,7 +33549,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "11h 37m",
       "last_active": "2026-01-16T04:51:57"
     },
@@ -33656,7 +33561,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "5h 26m",
       "last_active": "2026-01-15T22:45:58"
     },
@@ -33669,7 +33573,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "5h 34m",
       "last_active": "2026-01-15T22:56:08"
     },
@@ -33681,7 +33584,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T17:28:53"
     },
@@ -33693,7 +33595,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T17:35:22"
     },
@@ -33705,7 +33606,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T17:36:01"
     },
@@ -33717,7 +33617,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T17:48:06"
     },
@@ -33730,7 +33629,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "4h 11m",
       "last_active": "2026-01-15T22:00:09"
     },
@@ -33742,7 +33640,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:08:23"
     },
@@ -33754,7 +33651,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:26:35"
     },
@@ -33766,7 +33662,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:33:49"
     },
@@ -33778,7 +33673,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:44:10"
     },
@@ -33790,7 +33684,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:46:02"
     },
@@ -33802,7 +33695,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "1h 11m",
       "last_active": "2026-01-15T19:58:13"
     },
@@ -33814,7 +33706,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:48:26"
     },
@@ -33826,7 +33717,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:49:04"
     },
@@ -33839,7 +33729,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "4h 1m",
       "last_active": "2026-01-15T22:53:07"
     },
@@ -33851,7 +33740,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T18:55:56"
     },
@@ -33863,7 +33751,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T19:09:29"
     },
@@ -33875,7 +33762,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T19:17:00"
     },
@@ -33887,7 +33773,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T19:31:22"
     },
@@ -33899,7 +33784,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T19:40:02"
     },
@@ -33911,7 +33795,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T19:52:13"
     },
@@ -33924,7 +33807,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "3h 45m",
       "last_active": "2026-01-15T23:38:33"
     },
@@ -33936,7 +33818,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T19:56:40"
     },
@@ -33949,7 +33830,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "3h 7m",
       "last_active": "2026-01-15T23:26:39"
     },
@@ -33962,7 +33842,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "3h 44m",
       "last_active": "2026-01-16T00:04:14"
     },
@@ -33974,7 +33853,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T20:28:22"
     },
@@ -33987,7 +33865,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "1h 51m",
       "last_active": "2026-01-15T22:50:18"
     },
@@ -33999,7 +33876,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T21:24:28"
     },
@@ -34012,7 +33888,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "50.0%",
       "span_human": "25m 11s",
       "last_active": "2026-01-15T22:16:06"
     },
@@ -34024,7 +33899,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "0.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T21:56:00"
     },
@@ -34035,7 +33909,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-15T22:12:22"
     },
@@ -34048,7 +33921,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T22:29:00"
     },
@@ -34059,7 +33931,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-15T22:32:18"
     },
@@ -34072,7 +33943,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T22:49:22"
     },
@@ -34085,7 +33955,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T23:01:10"
     },
@@ -34096,7 +33965,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-15T23:01:18"
     },
@@ -34107,7 +33975,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-15T23:04:12"
     },
@@ -34118,7 +33985,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-15T23:14:12"
     },
@@ -34131,7 +33997,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T23:20:14"
     },
@@ -34144,7 +34009,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T23:23:29"
     },
@@ -34157,7 +34021,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T23:26:29"
     },
@@ -34170,7 +34033,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "3h 40m",
       "last_active": "2026-01-16T03:07:21"
     },
@@ -34183,7 +34045,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "1h 32m",
       "last_active": "2026-01-16T01:16:21"
     },
@@ -34196,7 +34057,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-15T23:47:21"
     },
@@ -34209,7 +34069,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T00:07:30"
     },
@@ -34220,7 +34079,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-16T00:28:16"
     },
@@ -34233,7 +34091,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T00:28:41"
     },
@@ -34246,7 +34103,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T00:29:27"
     },
@@ -34259,7 +34115,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T00:30:41"
     },
@@ -34272,7 +34127,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T00:52:03"
     },
@@ -34285,7 +34139,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:11:52"
     },
@@ -34298,7 +34151,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:15:20"
     },
@@ -34311,7 +34163,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:17:14"
     },
@@ -34324,7 +34175,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:19:02"
     },
@@ -34337,7 +34187,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "58m 48s",
       "last_active": "2026-01-16T02:22:28"
     },
@@ -34348,7 +34197,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-16T01:35:15"
     },
@@ -34361,7 +34209,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:36:36"
     },
@@ -34374,7 +34221,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:44:46"
     },
@@ -34387,7 +34233,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T01:52:45"
     },
@@ -34400,7 +34245,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T02:03:53"
     },
@@ -34413,7 +34257,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T02:11:53"
     },
@@ -34426,7 +34269,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T02:20:55"
     },
@@ -34439,7 +34281,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T02:24:53"
     },
@@ -34452,7 +34293,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T02:44:37"
     },
@@ -34465,7 +34305,6 @@
       ],
       "hits": 2,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "2h 24m",
       "last_active": "2026-01-16T05:35:11"
     },
@@ -34476,7 +34315,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2024-01-16T03:16:31"
     },
@@ -34489,7 +34327,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T03:20:54"
     },
@@ -34502,7 +34339,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T03:22:55"
     },
@@ -34515,7 +34351,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T04:48:53"
     },
@@ -34528,7 +34363,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T04:51:48"
     },
@@ -34541,7 +34375,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T04:53:26"
     },
@@ -34554,7 +34387,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T05:01:58"
     },
@@ -34567,7 +34399,6 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T05:11:27"
     },
@@ -34580,25 +34411,21 @@
       ],
       "hits": 1,
       "failed_attempts": 0,
-      "off_hours_ratio": "100.0%",
       "span_human": "0s",
       "last_active": "2026-01-16T05:41:55"
     }
   ],
   "system_info": {
-    "os_type": "Linux",
-    "os_release": "6.18.12+kali-amd64",
-    "hostname": "kali",
-    "scan_timestamp": "2026-04-11T13:53:41.055235"
-  },
-  "file_info": {
-    "filename": "sample.log",
-    "size_bytes": 1070621,
-    "modified_at": "2026-04-11T11:18:48.329675"
+    "os": "Linux",
+    "ver": "6.18.12+kali-amd64",
+    "arch": "x86_64",
+    "host": "kali",
+    "cpu": "",
+    "ts": "2026-04-11T14:13:24.970234"
   },
   "performance": {
-    "processing_time_sec": 0.1414,
-    "lines_per_sec": 70736.1
+    "time": 0.2197,
+    "lps": 45519.21
   },
   "stats": {
     "log_type": "ISO-8601",
@@ -34606,7 +34433,6 @@
     "parsed_lines": 6672,
     "skipped_lines": 3328,
     "log_span_sec": -63078707.0,
-    "first_ts": "2026-01-15T08:00:07",
-    "last_ts": "2024-01-16T06:08:20"
+    "obfuscation_count": 97
   }
 }

@@ -16,6 +16,7 @@ import socket
 import math
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple
+from collections import deque
 
 # ── ANSI colour codes ────────────────────────────────────────────────────────
 USE_COLOUR = sys.stdout.isatty() and os.name != "nt"
@@ -246,36 +247,36 @@ def report_terminal(result: dict, filepath: str):
             print(f"  {C.YELLOW}{t['ip']:<16}{C.RESET} | {t['hits']:<6} | {C.GREY}{tags}{C.RESET}")
 
     print(f"\n{C.BOLD}{'━'*75}{C.RESET}")
-    print(f" {C.DIM}Artifacts: report.json, reportN.html, reportN.csv, threatsN.csv{C.RESET}")
+    print(f" {C.DIM}Artifacts: report.json, report.html, report.csv, target.csv{C.RESET}")
     print(f"{C.BOLD}{'━'*75}{C.RESET}\n")
 
 def report_csv_integrity(result: dict):
-    i = 1
-    while os.path.exists(f"report{i}.csv"): i += 1
-    with open(f"report{i}.csv", "w", newline="", encoding="utf-8") as f:
+    file_path = "report.csv"
+    with open(file_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["type", "gap_start", "gap_end", "duration_sec", "duration_human", "severity", "start_line", "end_line"])
-        writer.writeheader(); writer.writerows(result["gaps"])
+        writer.writeheader()
+        writer.writerows(result["gaps"])
+    print(f"[*] Integrity CSV generated → {file_path}")
 
 def report_csv_behavioral(result: dict):
-    i = 1
-    while os.path.exists(f"threats{i}.csv"): i += 1
-    with open(f"threats{i}.csv", "w", newline="", encoding="utf-8") as f:
+    file_path = "target.csv"
+    with open(file_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["ip", "hits", "failed_attempts", "span_human", "risk_tags"])
         writer.writeheader()
         for t in result["threats"]:
             row = {"ip": t["ip"], "hits": t["hits"], "failed_attempts": t["failed_attempts"], "span_human": t["span_human"], "risk_tags": ", ".join(t["risk_tags"])}
             writer.writerow(row)
+    print(f"[*] Behavioral CSV generated → {file_path}")
 
 def report_json(result: dict):
     with open("report.json", "w") as f: json.dump(result, f, indent=2, default=str)
+    print(f"[*] JSON state updated → report.json")
 
 def report_html(result: dict, filepath: str):
-    i = 1
-    while os.path.exists(f"report{i}.html"): i += 1
-    out_file = f"report{i}.html"
+    out_file = "report.html"
     risk = _risk_score(result["gaps"], result["threats"])
     risk_color = "#ef4444" if risk >= 75 else ("#f59e0b" if risk >= 40 else "#10b981")
-    sys = result['system_info']
+    sys_info = result['system_info']
     perf = result['performance']
     stats = result['stats']
     
@@ -335,10 +336,10 @@ def report_html(result: dict, filepath: str):
         <div class="grid">
             <div class="card">
                 <h3>💻 System Metadata</h3>
-                <div class="meta-item"><span class="meta-label">Hostname</span><span class="meta-val">{sys['host']}</span></div>
-                <div class="meta-item"><span class="meta-label">Operating System</span><span class="meta-val">{sys['os']} ({sys['ver']})</span></div>
-                <div class="meta-item"><span class="meta-label">Architecture</span><span class="meta-val">{sys['arch']}</span></div>
-                <div class="meta-item"><span class="meta-label">Processor</span><span class="meta-val">{sys['cpu']}</span></div>
+                <div class="meta-item"><span class="meta-label">Hostname</span><span class="meta-val">{sys_info['host']}</span></div>
+                <div class="meta-item"><span class="meta-label">Operating System</span><span class="meta-val">{sys_info['os']} ({sys_info['ver']})</span></div>
+                <div class="meta-item"><span class="meta-label">Architecture</span><span class="meta-val">{sys_info['arch']}</span></div>
+                <div class="meta-item"><span class="meta-label">Processor</span><span class="meta-val">{sys_info['cpu']}</span></div>
             </div>
             <div class="card">
                 <h3>📈 Processing Intelligence</h3>
