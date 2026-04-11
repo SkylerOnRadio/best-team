@@ -23,7 +23,7 @@ _UNAUTHORIZED_CMDS = ["rm -rf /", "nmap -sS 10.0.0.0/24", "netcat -l -p 4444", "
 _ADMIN_USERS = ["root", "admin", "skyler", "sysop"]
 _MALICIOUS_IPS = ["194.26.135.21", "185.220.101.35", "45.155.205.233"]
 
-# --- Formatter & Scenario Logic ---
+# --- Formatter & Scenario Logic ---c
 
 def get_iso_ts(dt):
     return dt.isoformat(timespec='milliseconds') + "Z"
