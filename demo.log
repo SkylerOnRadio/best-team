@@ -1,0 +1,19 @@
+2024-03-10T08:00:00  [INFO ]  System boot complete
+2024-03-10T08:00:30  [INFO ]  Auth service started
+2024-03-10T08:01:30  [INFO ]  Database connected – pool size 10
+DEBUG kernel: process 1234 scheduled
+2024-03-10T08:02:30  [INFO ]  User admin logged in from 10.0.0.1
+2024-03-10T08:03:30  [INFO ]  Cron job: backup started
+2024-03-10T08:04:30  [INFO ]  Backup complete
+2024-03-10T08:49:30  [WARN ]  Unexpected config change detected
+--- marker ---
+2024-03-10T08:50:10  [ERROR]  Failed login attempt: root@external
+2024-03-10T08:50:45  [INFO ]  Firewall rule modified
+2024-03-10T08:51:20  [WARN ]  Large data transfer to 203.0.113.5
+continuation of previous error message
+2024-03-10T08:53:20  [INFO ]  User admin logged out
+2024-03-10T10:53:20  [INFO ]  Scheduled maintenance window
+2024-03-10T10:54:20  [INFO ]  Service restarted
+2024-03-10T10:55:20  [ERROR]  Database replication lag detected
+2024-03-10T10:56:20  [INFO ]  Replication recovered
+2024-03-10T10:57:20  [INFO ]  All systems nominal
