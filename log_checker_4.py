@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Evidence Protector v2.7 – Universal Log Integrity & Advanced Behavioral Monitor
-Detects gaps, out-of-order logs, brute force, off-hours access, privilege escalation,
-log tampering, activity spikes, and service instability.
+Evidence Protector v2.8 – Damage-Matrix Forensic Engine
+Evaluates system risk based on five impact zones: Integrity, Access, 
+Persistence, Privacy, and Continuity.
 """
 
 import argparse
@@ -64,47 +64,70 @@ SPIKE_THRESHOLD_EPS = 50 # Events Per Second
 
 CURRENT_YEAR = datetime.now().year
 
-# ── Helper Utilities ─────────────────────────────────────────────────────────
-def _bar(value: int, max_val: int, width: int = 30, char: str = "█") -> str:
-    filled = int(round(value / max_val * width)) if max_val else 0
-    return char * filled + C.DIM + "░" * (width - filled) + C.RESET
-
+# ── Damage Matrix Evaluation ────────────────────────────────────────────────
 def _risk_score(gaps: list, threats: list) -> int:
     """
-    Returns a 0-100 composite risk score using dampened factors to prevent
-    the score from hitting 100/100 too easily for minor/common events.
+    Evaluates risk using a Damage Matrix approach.
+    Calculates impact scores for 5 zones and weights them.
     """
     if not gaps and not threats: return 0
     
-    # 1. Integrity Component (Gap Analysis)
-    # Weights are adjusted to reflect true forensic impact
-    gap_weights = {"CRITICAL": 35, "HIGH": 15, "MEDIUM": 5, "LOW": 1, "REVERSED": 45}
-    gap_raw_points = sum(gap_weights.get(g["severity"], 0) for g in gaps)
-    # Logarithmic dampening: many small gaps shouldn't lock the score at 100
-    gap_contribution = (gap_raw_points ** 0.75) if gap_raw_points > 0 else 0
+    # Zone 1: Forensic Integrity (Timeline Tampering)
+    integrity_damage = 0
+    if any(g['type'] == 'REVERSED' for g in gaps): integrity_damage = 90
+    elif any(g['severity'] == 'CRITICAL' for g in gaps): integrity_damage = 70
+    elif any(g['severity'] == 'HIGH' for g in gaps): integrity_damage = 40
+    elif gaps: integrity_damage = 20
 
-    # 2. Behavioral Component (Threat Intelligence)
-    threat_points = 0
+    # Zone 2: System Control (Escalation & Takeover)
+    control_damage = 0
     for t in threats:
-        tags = t["risk_tags"]
-        p = 0
-        if "LOG_TAMPER_ATTEMPT" in tags: p = max(p, 50)
-        if "PRIV_ESCALATION" in tags: p = max(p, 40)
-        if "SENSITIVE_FILE_ACCESS" in tags: p = max(p, 30)
-        if "BRUTE_FORCE_TARGET" in tags: p = max(p, 25)
-        if "ACTIVITY_SPIKE" in tags: p = max(p, 15)
-        if "SUSPICIOUS_TIMING" in tags: p = max(p, 10)
-        
-        # Base points for any threat activity if no major category matched
-        if not p and tags: p = 5
-        threat_points += p
-    
-    # Dampen behavioral impact to ensure 100 is hard to reach without critical flags
-    threat_contribution = (threat_points ** 0.8) if threat_points > 0 else 0
-    
-    # Combined score (capped at 100)
-    final_score = int(min(gap_contribution + threat_contribution, 100))
-    return final_score
+        if "PRIV_ESCALATION" in t["risk_tags"]: control_damage = max(control_damage, 95)
+        if "BRUTE_FORCE_TARGET" in t["risk_tags"]: control_damage = max(control_damage, 60)
+        if "FAILED_LOGIN" in t["risk_tags"]: control_damage = max(control_damage, 20)
+
+    # Zone 3: Persistence & Anti-Forensics (File Changes / Tampering)
+    persistence_damage = 0
+    for t in threats:
+        if "LOG_TAMPER_ATTEMPT" in t["risk_tags"]: persistence_damage = max(persistence_damage, 100)
+        if "UNUSUAL_FILE_CHANGE" in t["risk_tags"]: persistence_damage = max(persistence_damage, 80)
+        if "SCANNING" in t["risk_tags"]: persistence_damage = max(persistence_damage, 30)
+
+    # Zone 4: Data Privacy (Sensitive Information Access)
+    privacy_damage = 0
+    for t in threats:
+        if "SENSITIVE_FILE_ACCESS" in t["risk_tags"]: privacy_damage = max(privacy_damage, 85)
+        if "UNUSUAL" in t["risk_tags"]: privacy_damage = max(privacy_damage, 40)
+
+    # Zone 5: Service Continuity (Crashes & Instability)
+    continuity_damage = 0
+    for t in threats:
+        if "SERVICE_INSTABILITY" in t["risk_tags"]: continuity_damage = max(continuity_damage, 70)
+        if "ACTIVITY_SPIKE" in t["risk_tags"]: continuity_damage = max(continuity_damage, 50)
+
+    # Weighted Matrix Formula
+    # We give high weight to System Control and Integrity as they indicate a direct compromise.
+    weights = {
+        "integrity": 0.25,
+        "control": 0.30,
+        "persistence": 0.20,
+        "privacy": 0.15,
+        "continuity": 0.10
+    }
+
+    final_damage = (
+        (integrity_damage * weights["integrity"]) +
+        (control_damage * weights["control"]) +
+        (persistence_damage * weights["persistence"]) +
+        (privacy_damage * weights["privacy"]) +
+        (continuity_damage * weights["continuity"])
+    )
+
+    return int(min(final_damage, 100))
+
+def _bar(value: int, max_val: int, width: int = 30, char: str = "█") -> str:
+    filled = int(round(value / max_val * width)) if max_val else 0
+    return char * filled + C.DIM + "░" * (width - filled) + C.RESET
 
 def _human_duration(seconds: float) -> str:
     seconds = abs(int(seconds))
@@ -195,7 +218,6 @@ def scan_log(filepath: str, threshold_seconds: float):
                 if first_ts is None: first_ts = ts
                 last_ts = ts
                 
-                # 1. Integrity Check
                 if prev_ts is not None:
                     delta = (ts - prev_ts).total_seconds()
                     if delta >= threshold_seconds or delta < 0:
@@ -211,7 +233,6 @@ def scan_log(filepath: str, threshold_seconds: float):
                             "end_line": line_no,
                         })
                 
-                # 2. Behavioral Intelligence
                 ip_match = re.search(IP_PATTERN, line_content)
                 if ip_match:
                     ip = ip_match.group()
@@ -244,17 +265,12 @@ def scan_log(filepath: str, threshold_seconds: float):
         print(f"File Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 3. Post-Process Threats
     threats = []
     for ip, data in ip_stats.items():
-        if data["failed_count"] >= BRUTE_FORCE_THRESHOLD:
-            data["tags"].add("BRUTE_FORCE_TARGET")
-        
+        if data["failed_count"] >= BRUTE_FORCE_THRESHOLD: data["tags"].add("BRUTE_FORCE_TARGET")
         span = (data["last_seen"] - data["first_seen"]).total_seconds()
         if span > 86400 * 2: data["tags"].add("PERSISTENT_ACTOR")
-        
-        if span > 0 and (data["hits"] / span) > SPIKE_THRESHOLD_EPS:
-            data["tags"].add("ACTIVITY_SPIKE")
+        if span > 0 and (data["hits"] / span) > SPIKE_THRESHOLD_EPS: data["tags"].add("ACTIVITY_SPIKE")
 
         if len(data["tags"]) > 0 or data["hits"] > 100:
             threats.append({
@@ -286,25 +302,17 @@ def report_terminal(result: dict, filepath: str, threshold: float):
     risk_col = C.RED if risk >= 60 else (C.YELLOW if risk >= 30 else C.GREEN)
     
     print(f"\n{C.BOLD}{'─'*75}{C.RESET}")
-    print(f"{C.BOLD}  🛡️  EVIDENCE PROTECTOR v2.7 – Multi-Layer Forensic Engine{C.RESET}")
+    print(f"{C.BOLD}  🛡️  EVIDENCE PROTECTOR v2.8 – Damage-Matrix Assessment{C.RESET}")
     print(f"{'─'*75}")
     print(f"  Target File : {C.CYAN}{f.get('filename', filepath)}{C.RESET} ({s['log_type']})")
-    print(f"  System      : {result['system_info']['hostname']} | Lines: {s['total_lines']:,}")
     print(f"  Risk Score  : {risk_col}{C.BOLD}{risk:>3}/100{C.RESET}  {risk_col}{_bar(risk, 100)}{C.RESET}")
     print(f"{'─'*75}")
 
-    print(f"\n  {C.BOLD}[📊 ANOMALY SUMMARY]{C.RESET}")
-    print(f"    Timeline Gaps    : {C.YELLOW if result['gaps'] else C.GREEN}{len(result['gaps'])}{C.RESET}")
-    print(f"    Threat Actors    : {C.RED if result['threats'] else C.GREEN}{len(result['threats'])}{C.RESET}")
+    print(f"\n  {C.BOLD}[📊 IMPACT SUMMARY]{C.RESET}")
+    print(f"    Timeline Anomalies : {C.YELLOW if result['gaps'] else C.GREEN}{len(result['gaps'])}{C.RESET}")
+    print(f"    Threat Entities    : {C.RED if result['threats'] else C.GREEN}{len(result['threats'])}{C.RESET}")
     
-    log_tamper = sum(1 for t in result["threats"] if "LOG_TAMPER_ATTEMPT" in t["risk_tags"])
-    spike_count = sum(1 for t in result["threats"] if "ACTIVITY_SPIKE" in t["risk_tags"])
-    print(f"    Log Tampering    : {C.RED if log_tamper else C.GREEN}{log_tamper}{C.RESET}")
-    print(f"    Activity Spikes  : {C.YELLOW if spike_count else C.GREEN}{spike_count}{C.RESET}")
-    
-    print(f"\n  {C.CYAN}Notice:{C.RESET} Forensic artifacts generated:")
-    print(f"  - reportN.csv / threatsN.csv")
-    print(f"  - reportN.html")
+    print(f"\n  {C.CYAN}Artifacts:{C.RESET} Visual matrix generated in reportN.html")
     print(f"{'─'*75}\n")
 
 def report_csv_integrity(result: dict):
@@ -340,16 +348,16 @@ def report_html(result: dict, filepath: str):
     risk_color = "#ef4444" if risk >= 60 else ("#f59e0b" if risk >= 30 else "#10b981")
     
     def gen_rows(subset):
-        if not subset: return '<tr><td colspan="6" class="no-data">No entities detected in this sub-category.</td></tr>'
+        if not subset: return '<tr><td colspan="6" class="no-data">No threats detected in this zone.</td></tr>'
         return "".join([f"<tr><td><strong>{t['ip']}</strong></td><td>{t['hits']}</td><td>{t['failed_attempts']}</td><td>{t['off_hours_ratio']}</td><td>{t['span_human']}</td><td>{' '.join([f'<span class="tag tag-blue">{tag}</span>' for tag in t['risk_tags']])}</td></tr>" for t in subset])
 
-    # Behavioral Sub-Categories
+    # Category filtering for Damage Matrix
     priv_esc = [t for t in result['threats'] if "PRIV_ESCALATION" in t['risk_tags']]
     brute_force = [t for t in result['threats'] if "BRUTE_FORCE_TARGET" in t['risk_tags']]
-    log_tamper = [t for t in result['threats'] if "LOG_TAMPER_ATTEMPT" in t['risk_tags']]
-    sensitive_access = [t for t in result['threats'] if "SENSITIVE_FILE_ACCESS" in t['risk_tags']]
+    integrity_threats = [t for t in result['threats'] if "LOG_TAMPER_ATTEMPT" in t['risk_tags']]
+    data_threats = [t for t in result['threats'] if "SENSITIVE_FILE_ACCESS" in t['risk_tags']]
     spikes = [t for t in result['threats'] if "ACTIVITY_SPIKE" in t['risk_tags']]
-    service_events = [t for t in result['threats'] if "SERVICE_INSTABILITY" in t['risk_tags']]
+    stability = [t for t in result['threats'] if "SERVICE_INSTABILITY" in t['risk_tags']]
     
     gap_data = [g for g in result['gaps'] if g['type'] == 'GAP']
     rev_data = [g for g in result['gaps'] if g['type'] == 'REVERSED']
@@ -364,14 +372,17 @@ def report_html(result: dict, filepath: str):
             body {{ font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--primary); padding: 20px; line-height: 1.5; }}
             .container {{ max-width: 1200px; margin: 0 auto; }}
             .card {{ background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb; }}
-            .risk-meter {{ height: 32px; background: #e5e7eb; border-radius: 16px; overflow: hidden; margin: 15px 0; position: relative; border: 1px solid #d1d5db; }}
+            .risk-meter {{ height: 36px; background: #e5e7eb; border-radius: 18px; overflow: hidden; margin: 15px 0; position: relative; border: 1px solid #d1d5db; }}
             .risk-fill {{ height: 100%; background: {risk_color}; width: {risk}% }}
-            .risk-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }}
+            .risk-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 900; text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-size: 18px; }}
+            
             details {{ border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; background: #f9fafb; overflow: hidden; }}
-            summary {{ padding: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; user-select: none; }}
+            summary {{ padding: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; user-select: none; border-left: 4px solid var(--secondary); }}
             summary:hover {{ background: #f3f4f6; }}
             summary::after {{ content: '▼'; margin-left: auto; transition: transform 0.2s; }}
             details[open] summary::after {{ transform: rotate(180deg); }}
+            details[open] summary {{ border-left: 4px solid var(--primary); }}
+            
             .table-container {{ padding: 15px; background: #fff; overflow-x: auto; }}
             table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
             th, td {{ text-align: left; padding: 12px; border-bottom: 1px solid #f1f5f9; }}
@@ -379,76 +390,73 @@ def report_html(result: dict, filepath: str):
             .tag {{ padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-right: 4px; display: inline-block; }}
             .tag-red {{ background: #fee2e2; color: #991b1b; }}
             .tag-blue {{ background: #dbeafe; color: #1e40af; }}
-            .no-data {{ text-align: center; color: var(--secondary); padding: 20px; font-style: italic; }}
             .badge {{ background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 10px; }}
+            .no-data {{ text-align: center; color: var(--secondary); padding: 20px; font-style: italic; }}
         </style>
-        <title>Forensic Report - {os.path.basename(filepath)}</title>
+        <title>Forensic Damage Matrix - {os.path.basename(filepath)}</title>
     </head>
     <body>
         <div class="container">
             <div class="card">
                 <h1>🛡️ Log Integrity Checker V 4.2</h1>
-                <p>Audit for: <strong>{os.path.basename(filepath)}</strong></p>
-                <div class="risk-meter"><div class="risk-fill"></div><span class="risk-text">SYSTEM RISK SCORE: {risk}/100</span></div>
+                <p style="color:var(--secondary);">Damage Matrix Audit: <strong>{os.path.basename(filepath)}</strong></p>
+                <div class="risk-meter"><div class="risk-fill"></div><span class="risk-text">OVERALL SYSTEM DAMAGE: {risk}%</span></div>
             </div>
 
-            <div class="card">
-                <h2>⏳ Log Integrity (Timeline Analysis)</h2>
+            <div class="card" style="border-top: 5px solid #ef4444;">
+                <h2 style="color:#ef4444;">🚨 Zone 1: Integrity & Anti-Forensics</h2>
                 <details>
-                    <summary>Timeline Gaps <span class="badge">{len(gap_data)}</span></summary>
-                    <div class="table-container">
-                        <table><thead><tr><th>Severity</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
-                        <tbody>{"".join([f"<tr><td><span class='tag tag-red'>{g['severity']}</span></td><td>{g['duration_human']}</td><td>{g['gap_start'][:19]} &rarr; {g['gap_end'][:19]}</td><td>{g['start_line']}-{g['end_line']}</td></tr>" for g in gap_data]) if gap_data else '<tr><td colspan="4" class="no-data">No gaps detected.</td></tr>'}</tbody>
-                        </table>
-                    </div>
+                    <summary>Timeline Gaps (Potential Deletion) <span class="badge">{len(gap_data)}</span></summary>
+                    <div class="table-container"><table><thead><tr><th>Severity</th><th>Duration</th><th>Window</th><th>Lines</th></tr></thead>
+                    <tbody>{"".join([f"<tr><td><span class='tag tag-red'>{g['severity']}</span></td><td>{g['duration_human']}</td><td>{g['gap_start'][:19]} &rarr; {g['gap_end'][:19]}</td><td>{g['start_line']}-{g['end_line']}</td></tr>" for g in gap_data]) if gap_data else '<tr><td colspan="4" class="no-data">No gaps detected.</td></tr>'}</tbody></table></div>
                 </details>
                 <details>
-                    <summary>Time Reversals <span class="badge">{len(rev_data)}</span></summary>
-                    <div class="table-container">
-                        <table><thead><tr><th>Window</th><th>Lines</th></tr></thead>
-                        <tbody>{"".join([f"<tr><td>{g['gap_start'][:19]} &rarr; {g['gap_end'][:19]}</td><td>{g['start_line']}-{g['end_line']}</td></tr>" for g in rev_data]) if rev_data else '<tr><td colspan="2" class="no-data">No reversals detected.</td></tr>'}</tbody>
-                        </table>
-                    </div>
+                    <summary>Anti-Forensic Commands <span class="badge">{len(integrity_threats)}</span></summary>
+                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(integrity_threats)}</tbody></table></div>
                 </details>
             </div>
 
-            <div class="card">
-                <h2>💀 Behavioral Integrity (Security Intelligence)</h2>
+            <div class="card" style="border-top: 5px solid #f59e0b;">
+                <h2 style="color:#f59e0b;">🔐 Zone 2: System Control & Access</h2>
+                <details>
+                    <summary>Privilege Escalation Events <span class="badge">{len(priv_esc)}</span></summary>
+                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(priv_esc)}</tbody></table></div>
+                </details>
                 <details>
                     <summary>Brute Force Activity <span class="badge">{len(brute_force)}</span></summary>
                     <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(brute_force)}</tbody></table></div>
                 </details>
+            </div>
+
+            <div class="card" style="border-top: 5px solid #3b82f6;">
+                <h2 style="color:#3b82f6;">📁 Zone 3: Data Privacy & Information</h2>
                 <details>
-                    <summary>Privilege Escalation <span class="badge">{len(priv_esc)}</span></summary>
-                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(priv_esc)}</tbody></table></div>
+                    <summary>Sensitive File Access Attempts <span class="badge">{len(data_threats)}</span></summary>
+                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(data_threats)}</tbody></table></div>
                 </details>
-                <details>
-                    <summary>Log Tampering Attempts <span class="badge">{len(log_tamper)}</span></summary>
-                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(log_tamper)}</tbody></table></div>
-                </details>
-                <details>
-                    <summary>Sensitive File Access <span class="badge">{len(sensitive_access)}</span></summary>
-                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(sensitive_access)}</tbody></table></div>
-                </details>
+            </div>
+
+            <div class="card" style="border-top: 5px solid #10b981;">
+                <h2 style="color:#10b981;">⚙️ Zone 4: Service Continuity</h2>
                 <details>
                     <summary>Activity Spikes <span class="badge">{len(spikes)}</span></summary>
                     <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(spikes)}</tbody></table></div>
                 </details>
                 <details>
-                    <summary>Service Events & Crashes <span class="badge">{len(service_events)}</span></summary>
-                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(service_events)}</tbody></table></div>
+                    <summary>Service Crashes & Events <span class="badge">{len(stability)}</span></summary>
+                    <div class="table-container"><table><thead><tr><th>IP</th><th>Hits</th><th>Failures</th><th>Off-Hours</th><th>Span</th><th>Tags</th></tr></thead><tbody>{gen_rows(stability)}</tbody></table></div>
                 </details>
             </div>
             
             <footer style="text-align: center; color: var(--secondary); font-size: 11px;">
-                Evidence Protector Engine v2.7 | {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                Evidence Protector Engine v2.8 | Managed Damage Assessment
             </footer>
         </div>
     </body>
     </html>
     """
     with open(out_file, "w", encoding="utf-8") as f: f.write(html)
-    print(f"[*] Visual report generated → {out_file}")
+    print(f"[*] Damage Matrix report generated → {out_file}")
 
 def main():
     p = argparse.ArgumentParser()
