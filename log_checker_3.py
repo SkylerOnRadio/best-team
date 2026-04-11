@@ -221,7 +221,7 @@ def report_csv(result: dict):
         i += 1
     file_path = f"report{i}.csv"
     
-    fields = ["type", "gap_start", "gap_end", "duration_sec", "severity", "start_line", "end_line"]
+    fields = ["type", "gap_start", "gap_end", "duration_sec", "duration_human", "severity", "start_line", "end_line"]
     with open(file_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
         writer.writeheader()
