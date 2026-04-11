@@ -16,7 +16,14 @@ from flask_cors import CORS
 from log import scan_log, _risk_score, report_terminal
 
 # --- CONFIGURATION ---
-SCAN_INTERVAL = 3600  # 3600 seconds = 1 hour for continuous 24/7 scanning
+# Path to the log checker script used by the dashboard
+CHECKER_SCRIPT_PATH = "./log.py"
+# The log file to monitor
+TARGET_LOG_FILE = "sample.log"
+# Temporary location for the generated report
+TEMP_REPORT_JSON = "latest_forensic_report.json"
+# Scan interval (120 seconds = 2 minutes)
+SCAN_INTERVAL = 3600
 DEFAULT_THRESHOLD = 300.0
 
 # ── Directory Resolution (Matching log.py structure) ──

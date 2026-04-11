@@ -9,3 +9,4 @@ log_checker_cli/*.csv
 log_checker_cli/*.html
 __pycache__
 node_modules
+log_checker_cli/build
