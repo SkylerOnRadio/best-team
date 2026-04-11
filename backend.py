@@ -13,13 +13,13 @@ from log_checker_5 import scan_log, _risk_score
 
 # --- CONFIGURATION ---
 # Path to the log checker script used by the dashboard
-CHECKER_SCRIPT_PATH = "./log_checker_5.py"
+CHECKER_SCRIPT_PATH = "./log.py"
 # The log file to monitor
 TARGET_LOG_FILE = "sample.log"
 # Temporary location for the generated report
 TEMP_REPORT_JSON = "latest_forensic_report.json"
 # Scan interval (120 seconds = 2 minutes)
-SCAN_INTERVAL = 120
+SCAN_INTERVAL = 3600
 DEFAULT_THRESHOLD = 300.0
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_LOCK = threading.Lock()
