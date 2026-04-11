@@ -1,11 +1,14 @@
 import {
   ChangeEvent,
+  type PointerEvent,
   type ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { ForensicReport, GapEntry, ThreatActor } from "./types";
+import BorderGlow from "./components/BorderGlow";
 
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -134,7 +137,10 @@ function isUploadedCache(report?: ForensicReport | null) {
   if (!report) return false;
   const source = report.analysis_source ?? report.file_info?.path ?? "";
   const fileName = report.file_info?.filename ?? "";
-  return source.includes("forensic_upload_") || fileName.startsWith("forensic_upload_");
+  return (
+    source.includes("forensic_upload_") ||
+    fileName.startsWith("forensic_upload_")
+  );
 }
 
 const bubblePalette: Record<BubbleGroup, string> = {
@@ -153,7 +159,10 @@ function resolveBubbleGroup(tags: string[]): BubbleGroup {
   ) {
     return "Access";
   }
-  if (tags.includes("LOG_TAMPER_ATTEMPT") || tags.includes("UNUSUAL_FILE_CHANGE")) {
+  if (
+    tags.includes("LOG_TAMPER_ATTEMPT") ||
+    tags.includes("UNUSUAL_FILE_CHANGE")
+  ) {
     return "Integrity";
   }
   if (
@@ -294,23 +303,60 @@ function SectionShell({
   badge?: ReactNode;
   children: ReactNode;
 }) {
+  const shellRef = useRef<HTMLElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const target = shellRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -32px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="rounded-[28px] border border-white/10 bg-[var(--panel)] p-5 shadow-glow backdrop-blur-xl sm:p-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-xl font-bold text-white sm:text-2xl">
-            {title}
-          </h2>
-          {subtitle ? (
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
-              {subtitle}
-            </p>
-          ) : null}
+    <BorderGlow
+      edgeSensitivity={30}
+      glowColor="40 80 80"
+      backgroundColor="#060010"
+      borderRadius={28}
+      glowRadius={40}
+      glowIntensity={1}
+      coneSpread={25}
+      animated={false}
+      colors={["#c084fc", "#f472b6", "#38bdf8"]}
+      className={`w-full section-reveal ${isVisible ? "section-reveal--visible" : ""}`}
+    >
+      <section
+        ref={shellRef}
+        className="rounded-[28px] border border-white/10 bg-[var(--panel)] p-4 shadow-glow backdrop-blur-xl sm:p-6"
+      >
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-bold text-white sm:text-2xl">
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+          {badge}
         </div>
-        {badge}
-      </div>
-      {children}
-    </section>
+        {children}
+      </section>
+    </BorderGlow>
   );
 }
 
@@ -389,10 +435,11 @@ function ActivityTimelineChart({ buckets }: { buckets: ActivityBucket[] }) {
     .map((entry, index) => {
       const x =
         leftPad +
-        (index / Math.max(buckets.length - 1, 1)) *
-          Math.max(innerWidth, 1);
+        (index / Math.max(buckets.length - 1, 1)) * Math.max(innerWidth, 1);
       const y =
-        topPad + innerHeight - (entry.count / maxCount) * Math.max(innerHeight, 1);
+        topPad +
+        innerHeight -
+        (entry.count / maxCount) * Math.max(innerHeight, 1);
       return `${x},${y}`;
     })
     .join(" ");
@@ -411,7 +458,7 @@ function ActivityTimelineChart({ buckets }: { buckets: ActivityBucket[] }) {
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="min-w-[680px] w-full"
+          className="min-w-[560px] w-full"
           role="img"
           aria-label="Activity timeline graph"
         >
@@ -515,6 +562,11 @@ function ActivityTimelineChart({ buckets }: { buckets: ActivityBucket[] }) {
 function BubblePlot({ points }: { points: BubblePoint[] }) {
   const [activeGroup, setActiveGroup] = useState<BubbleGroup | "All">("All");
   const [activePointId, setActivePointId] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   if (points.length === 0) {
     return (
@@ -535,28 +587,78 @@ function BubblePlot({ points }: { points: BubblePoint[] }) {
 
   const xMax = Math.max(...points.map((point) => point.xValue), 1);
   const yMax = Math.max(...points.map((point) => point.yValue), 1);
+  const minRawSize = Math.min(...points.map((point) => point.sizeValue));
+  const maxRawSize = Math.max(...points.map((point) => point.sizeValue));
+
+  const radiusFor = (value: number) => {
+    if (maxRawSize === minRawSize) return 14;
+    const normalized = (value - minRawSize) / (maxRawSize - minRawSize);
+    return 8 + Math.sqrt(Math.max(normalized, 0)) * 18;
+  };
 
   const plotted = points.map((point) => {
-    const cx = leftPad + (point.xValue / xMax) * innerWidth;
-    const cy = topPad + innerHeight - (point.yValue / yMax) * innerHeight;
-    return { ...point, cx, cy };
+    const radius = radiusFor(point.sizeValue);
+    const rawCx = leftPad + (point.xValue / xMax) * innerWidth;
+    const rawCy = topPad + innerHeight - (point.yValue / yMax) * innerHeight;
+    const cx = Math.min(
+      leftPad + innerWidth - radius,
+      Math.max(leftPad + radius, rawCx),
+    );
+    const cy = Math.min(
+      topPad + innerHeight - radius,
+      Math.max(topPad + radius, rawCy),
+    );
+    return { ...point, cx, cy, radius };
   });
 
-  const activePoint = plotted.find((point) => point.id === activePointId) ?? null;
+  const activePoint =
+    plotted.find((point) => point.id === activePointId) ?? null;
   const groups = Object.keys(bubblePalette) as BubbleGroup[];
 
+  function handlePointMove(
+    event: PointerEvent<SVGCircleElement>,
+    pointId: string,
+  ) {
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    setTooltip({
+      id: pointId,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+    setActivePointId(pointId);
+  }
+
+  function clearPointHover() {
+    setActivePointId(null);
+    setTooltip(null);
+  }
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
+    <div className="relative rounded-3xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
       <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-        X axis: activity pressure | Y axis: threat complexity | Bubble size: actor volume
+        X axis: activity pressure | Y axis: threat complexity | Bubble size:
+        actor volume
       </div>
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="min-w-[760px] w-full"
+          className="min-w-[620px] w-full"
           role="img"
           aria-label="Threat bubble plot"
         >
+          <defs>
+            <clipPath id="bubble-plot-clip">
+              <rect
+                x={leftPad}
+                y={topPad}
+                width={innerWidth}
+                height={innerHeight}
+              />
+            </clipPath>
+          </defs>
+
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
             const y = topPad + innerHeight - ratio * innerHeight;
             const label = Math.round(yMax * ratio);
@@ -623,27 +725,38 @@ function BubblePlot({ points }: { points: BubblePoint[] }) {
             stroke="rgba(148,163,184,0.5)"
           />
 
-          {plotted.map((point) => {
-            const isDimmed =
-              activeGroup !== "All" && point.group !== activeGroup;
-            const isActive = point.id === activePointId;
-            return (
-              <g key={point.id}>
-                <circle
-                  cx={point.cx}
-                  cy={point.cy}
-                  r={point.sizeValue}
-                  fill={bubblePalette[point.group]}
-                  fillOpacity={isDimmed ? 0.16 : 0.36}
-                  stroke={bubblePalette[point.group]}
-                  strokeWidth={isActive ? 2.8 : 1.2}
-                  className="transition-all"
-                  onMouseEnter={() => setActivePointId(point.id)}
-                  onMouseLeave={() => setActivePointId(null)}
-                />
-              </g>
-            );
-          })}
+          <g clipPath="url(#bubble-plot-clip)">
+            {plotted.map((point) => {
+              const isDimmed =
+                activeGroup !== "All" && point.group !== activeGroup;
+              const isActive = point.id === activePointId;
+              return (
+                <g key={point.id}>
+                  <circle
+                    cx={point.cx}
+                    cy={point.cy}
+                    r={Math.max(point.radius, 14)}
+                    fill="transparent"
+                    onPointerEnter={(event) => handlePointMove(event, point.id)}
+                    onPointerMove={(event) => handlePointMove(event, point.id)}
+                    onPointerLeave={clearPointHover}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <circle
+                    cx={point.cx}
+                    cy={point.cy}
+                    r={point.radius}
+                    fill={bubblePalette[point.group]}
+                    fillOpacity={isDimmed ? 0.16 : 0.36}
+                    stroke={bubblePalette[point.group]}
+                    strokeWidth={isActive ? 2.8 : 1.2}
+                    className="transition-all"
+                    pointerEvents="none"
+                  />
+                </g>
+              );
+            })}
+          </g>
 
           <text
             x={leftPad + innerWidth / 2}
@@ -682,12 +795,19 @@ function BubblePlot({ points }: { points: BubblePoint[] }) {
                 onMouseEnter={() => setActiveGroup(group)}
                 onMouseLeave={() => setActiveGroup("All")}
               >
-                <circle cx={leftPad + innerWidth + 18} cy={y - 5} r="6" fill={bubblePalette[group]} />
+                <circle
+                  cx={leftPad + innerWidth + 18}
+                  cy={y - 5}
+                  r="6"
+                  fill={bubblePalette[group]}
+                />
                 <text
                   x={leftPad + innerWidth + 30}
                   y={y - 2}
                   fontSize="12"
-                  fill={activeGroup === group ? "#ffffff" : "rgba(203,213,225,0.9)"}
+                  fill={
+                    activeGroup === group ? "#ffffff" : "rgba(203,213,225,0.9)"
+                  }
                 >
                   {group}
                 </text>
@@ -697,10 +817,26 @@ function BubblePlot({ points }: { points: BubblePoint[] }) {
         </svg>
       </div>
 
+      {tooltip && activePoint && tooltip.id === activePoint.id ? (
+        <div
+          className="pointer-events-none absolute z-20 rounded-xl border border-cyan-400/30 bg-slate-950/95 px-3 py-2 text-xs text-cyan-50 shadow-xl"
+          style={{
+            left: `${Math.min(tooltip.x + 14, width - 210)}px`,
+            top: `${Math.max(tooltip.y - 22, 12)}px`,
+          }}
+        >
+          <p className="font-semibold">{activePoint.label}</p>
+          <p>Hits: {formatNumber(activePoint.hits)}</p>
+          <p>Failures: {formatNumber(activePoint.failures)}</p>
+        </div>
+      ) : null}
+
       {activePoint ? (
         <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
           <span className="font-semibold text-white">{activePoint.label}</span>{" "}
-          | Hits: {formatNumber(activePoint.hits)} | Failed attempts: {formatNumber(activePoint.failures)} | Tags: {activePoint.tags.slice(0, 4).join(", ") || "None"}
+          | Hits: {formatNumber(activePoint.hits)} | Failed attempts:{" "}
+          {formatNumber(activePoint.failures)} | Tags:{" "}
+          {activePoint.tags.slice(0, 4).join(", ") || "None"}
         </div>
       ) : null}
     </div>
@@ -1071,89 +1207,123 @@ function App() {
               }
             >
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <MetricCard
-                  label="Host"
-                  value={report.system_info.host}
-                  detail={report.system_info.os}
-                />
-                <MetricCard
-                  label="Processor"
-                  value={report.system_info.cpu || "Unknown"}
-                  detail={`${report.system_info.arch} architecture`}
-                />
-                <MetricCard
-                  label="Processing time"
-                  value={`${report.performance.time}s`}
-                  detail={`${report.performance.lps.toLocaleString()} lines/sec`}
-                />
-                <MetricCard
-                  label="Log span"
-                  value={formatDuration(report.stats.log_span_sec)}
-                  detail={`Scanned at ${formatDate(report.system_info.ts)}`}
-                />
+                <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100/80">
+                    Host
+                  </p>
+                  <p className="mt-2 font-display text-2xl font-bold text-white">
+                    {report.system_info.host}
+                  </p>
+                  <p className="mt-1 text-sm text-cyan-50/80">
+                    {report.system_info.os}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-100/80">
+                    Processor
+                  </p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-white">
+                    {report.system_info.cpu || "Unknown"}
+                  </p>
+                  <p className="mt-1 text-sm text-fuchsia-50/80">
+                    {report.system_info.arch} architecture
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100/80">
+                    Processing time
+                  </p>
+                  <p className="mt-2 font-display text-2xl font-bold text-white">
+                    {report.performance.time}s
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-50/80">
+                    {report.performance.lps.toLocaleString()} lines/sec
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-100/80">
+                    Log span
+                  </p>
+                  <p className="mt-2 font-display text-2xl font-bold text-white">
+                    {formatDuration(report.stats.log_span_sec)}
+                  </p>
+                  <p className="mt-1 text-sm text-amber-50/80">
+                    Scanned at {formatDate(report.system_info.ts)}
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    File metadata
-                  </p>
-                  <div className="mt-3 space-y-2 text-sm text-slate-300">
-                    <div className="flex items-center justify-between gap-3">
-                      <span>File</span>
-                      <span className="text-white">
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      File metadata
+                    </p>
+                    <Badge className="border-white/10 bg-white/5 text-slate-200">
+                      {report.file_info?.extension || "LOG"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-3 text-sm text-slate-300">
+                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">File</span>
+                      <span className="font-semibold text-white break-all">
                         {report.file_info?.filename ?? reportFileName}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Path</span>
-                      <span className="max-w-[60%] truncate text-slate-200">
+                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Path</span>
+                      <span className="font-mono text-[12px] leading-6 text-slate-200 break-all">
                         {report.file_info?.path ??
                           report.analysis_source ??
                           "—"}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Size</span>
-                      <span className="text-white">
+                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Size</span>
+                      <span className="font-semibold text-white">
                         {formatBytes(report.file_info?.size_bytes)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Modified</span>
-                      <span className="text-white">
+                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Modified</span>
+                      <span className="font-semibold text-white">
                         {formatDate(report.file_info?.modified_at)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    Processing intelligence
-                  </p>
-                  <div className="mt-3 space-y-2 text-sm text-slate-300">
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Total lines</span>
-                      <span className="text-white">
+                <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Processing intelligence
+                    </p>
+                    <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100">
+                      {report.stats.log_type}
+                    </Badge>
+                  </div>
+                  <div className="space-y-3 text-sm text-slate-300">
+                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Total lines</span>
+                      <span className="font-semibold text-white">
                         {formatNumber(report.stats.total_lines)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Parsed lines</span>
-                      <span className="text-white">
+                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Parsed lines</span>
+                      <span className="font-semibold text-white">
                         {formatNumber(report.stats.parsed_lines)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Skipped lines</span>
-                      <span className="text-white">
+                    <div className="grid grid-cols-1 gap-1 border-b border-white/10 pb-2 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Skipped lines</span>
+                      <span className="font-semibold text-white">
                         {formatNumber(report.stats.skipped_lines)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Threshold</span>
-                      <span className="text-white">
+                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr] sm:gap-2">
+                      <span className="text-slate-400">Threshold</span>
+                      <span className="font-semibold text-white">
                         {report.threshold_seconds ?? threshold} sec
                       </span>
                     </div>
