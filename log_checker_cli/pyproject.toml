@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "check-log"
-version = "2.0.0"
+version = "2.1.0"
 description = "A security anomaly log generator and forensic analyzer"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    { name = "SkylerOnRadio", email = "abhigyadulal@gmail.com" }
+    { name = "SkylerOnRadio", email = "abhigyadulal@gmail.com" },
+    {name = "Gaurav Deep", email = "gauravdeepgd12007@gmail.com"}
 ]
 license = { text = "MIT" }
 classifiers = [
@@ -32,7 +33,7 @@ dependencies = [
 ]
 
 [project.scripts]
-check-log = "check_log.check_log:main"
+check-log = "check_log.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/SkylerOnRadio/best-team"
