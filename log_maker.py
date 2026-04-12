@@ -367,17 +367,29 @@ def print_progress(written: int, target: int, start: float, last: float,
     speed    = written / elapsed
     pct      = min(written / target * 100, 100.0)
     eta      = (target - written) / max(speed, 1)
-    bar_w    = 30
-    filled   = int(bar_w * pct / 100)
-    bar      = "█" * filled + "░" * (bar_w - filled)
-    print(
-        f"\r  [{bar}] {pct:5.1f}%  "
-        f"{fmt_bytes(written):>10} / {fmt_bytes(target)}  "
-        f"Speed: {fmt_bytes(int(speed))}/s  "
-        f"ETA: {int(eta//60):02d}:{int(eta%60):02d}  "
-        f"Lines: {lines:,}  Anomalies: {anomalies:,}",
-        end="", flush=True
-    )
+
+    # Detect terminal width; fall back to 80 columns
+    try:
+        term_w = os.get_terminal_size().columns
+    except OSError:
+        term_w = 80
+
+    # Build the right-hand stats string first so we know its length
+    stats = (f" {pct:5.1f}%  "
+             f"{fmt_bytes(written):>10} / {fmt_bytes(target)}  "
+             f"{fmt_bytes(int(speed))}/s  "
+             f"ETA {int(eta//60):02d}:{int(eta%60):02d}  "
+             f"L:{lines:,}  A:{anomalies:,}")
+
+    # Bar fills whatever space remains (minimum 10 chars)
+    bar_w  = max(term_w - len(stats) - 4, 10)   # 4 = "  [" + "]"
+    filled = int(bar_w * pct / 100)
+    bar    = "█" * filled + "░" * (bar_w - filled)
+
+    line = f"\r  [{bar}]{stats}"
+    # Pad/truncate to terminal width so no wrapping occurs
+    line = line[:term_w].ljust(term_w)
+    print(line, end="", flush=True)
     return now
 
 # ─────────────────────────────────────────────────────────────
@@ -397,9 +409,10 @@ def generate(args) -> dict:
 
     current_dt = datetime.now() - timedelta(days=args.days_back)
 
-    # Spike windows — 10 % of the time we emit bursts (brute-force simulation)
-    spike_active = False
-    spike_end    = current_dt
+    # Spike windows — simulate brute-force bursts using a line counter
+    # (time-based end was broken: time never advanced past spike_end)
+    spike_active     = False
+    spike_lines_left = 0
 
     open_fn = gzip.open if args.compress else open
     mode    = "wt" if args.compress else "w"
@@ -428,15 +441,17 @@ def generate(args) -> dict:
                 jitter = random.randint(1, args.interval)
                 current_dt += timedelta(seconds=jitter)
 
-                # Spike logic — simulate brute-force bursts
+                # Spike logic — simulate brute-force bursts (line-counter based)
                 if not spike_active and random.random() < 0.0005:
-                    spike_active = True
-                    spike_end    = current_dt + timedelta(seconds=random.randint(30, 300))
+                    spike_active     = True
+                    spike_lines_left = random.randint(200, 2000)
                 if spike_active:
-                    if current_dt >= spike_end:
+                    spike_lines_left -= 1
+                    if spike_lines_left <= 0:
                         spike_active = False
                     else:
-                        current_dt -= timedelta(seconds=jitter - 0)   # compress time
+                        # During spike: very compressed time (events every ~100-500ms)
+                        current_dt -= timedelta(milliseconds=random.randint(50, 500))
 
                 # Gap injection (by byte threshold)
                 if written_bytes >= next_gap and len(injected_gaps) < args.gaps:
