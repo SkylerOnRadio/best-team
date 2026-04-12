@@ -740,7 +740,6 @@ def report_terminal(result: Dict, filepath: str, out_paths: Dict[str, str]) -> N
     W = 79
 
     print(f"\n{C.BOLD}{'━'*W}{C.RESET}")
-    print(f"{C.CYAN}  _     ___   ____   ____   _____   _____   _____   ____   _____   ___   ____  ")
     print_banner()
     print(f"\n {C.BOLD}Foreign Threat Analysis | v{PROJECT_VERSION} (Optimized){C.RESET}")
     print(f"{C.BOLD}{'━'*W}{C.RESET}")
