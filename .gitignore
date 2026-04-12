@@ -10,3 +10,4 @@ __pycache__
 node_modules
 log_checker_cli/build
 log_checker_cli/
+stress_test.log

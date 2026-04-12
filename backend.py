@@ -19,6 +19,8 @@ from log import (
     report_csv_integrity,
     report_csv_behavioral,
     report_html,
+    resolve_output_dir,
+    make_output_paths,
 )
 
 # --- CONFIGURATION ---
@@ -89,8 +91,12 @@ def analyze_log_file(log_path: str, threshold_seconds: float) -> dict:
         # Calls the scan_log function imported from your log.py
         result = scan_log(log_path, threshold_seconds)
         
+        # Generate output paths for reports
+        output_dirs = resolve_output_dir()
+        out_paths = make_output_paths(output_dirs)
+        
         # Display the log.py terminal output in the console running the Flask server
-        report_terminal(result, log_path)
+        report_terminal(result, log_path, out_paths)
     except SystemExit as exc:
         raise RuntimeError(f"Log analysis failed for {log_path}") from exc
         
