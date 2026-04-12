@@ -55,9 +55,10 @@ In short: it is not only a dashboard, it is a reproducible forensic decision sys
 
 The project combines:
 
-- A Python forensic engine ([log.py](log.py)) for deep log analysis and report generation
-- A Flask + Socket.IO API service ([backend.py](backend.py)) for manual and scheduled scans
-- A React + TypeScript dashboard ([frontend/src/App.tsx](frontend/src/App.tsx)) for investigation workflows
+- A Python forensic engine ([log.py](log.py)) that parses logs, reconstructs sessions, scores risk, and writes terminal, JSON, CSV, and HTML outputs
+- A Flask + Socket.IO API service ([backend.py](backend.py)) that serves manual uploads, periodic scans, archived reports, and websocket events
+- A React + TypeScript dashboard ([frontend/src/App.tsx](frontend/src/App.tsx)) for upload analysis, calendar replay, live updates, and investigation charts
+- A backend startup path that can launch the Vite frontend automatically when [backend.py](backend.py) is run from the repository root
 
 ## Technology Logos
 
@@ -120,11 +121,13 @@ Upload/System Log ---> backend.py ---> log.py analysis engine ---> results (dict
        +--> frontend fetch + websocket <------+
 ```
 
-    ### Architecture At A Glance
+The default runtime entrypoint is [backend.py](backend.py): it starts the Flask API, the periodic scanning thread, and can also spawn the Vite frontend dev server so the full stack can come up from one command.
 
-    | Input | Processing | Output |
-    |---|---|---|
-    | Manual upload or system log source | Timestamp integrity checks + threat signature pipeline + risk-zone computation | Live dashboard signals + archived JSON/CSV/HTML forensic artifacts |
+### Architecture At A Glance
+
+| Input | Processing | Output |
+|---|---|---|
+| Manual upload or system log source | Timestamp integrity checks + threat signature pipeline + risk-zone computation | Live dashboard signals + archived JSON/CSV/HTML forensic artifacts |
 
 ### Runtime components
 
@@ -268,8 +271,7 @@ best-team/
 
 ## Setup and Run
 
-> [!TIP]
-> For best stability on Windows, run backend and frontend in separate terminals and keep the backend terminal active for scheduler + websocket events.
+The backend is the primary entrypoint. Running it from the repository root starts the API, scheduler, and frontend dev server process when `npm` is available.
 
 ## Prerequisites
 
@@ -294,6 +296,12 @@ Start backend:
 python backend.py
 ```
 
+This will:
+
+- start the Flask API on `http://127.0.0.1:5000`
+- start the periodic monitoring thread
+- launch the frontend Vite dev server on `http://127.0.0.1:5173` when `npm` is installed
+
 Optional: force an initial scan against a specific file on startup:
 
 ```powershell
@@ -306,14 +314,14 @@ Backend default URL:
 
 ## 2) Frontend setup
 
-In [frontend](frontend):
+If you want to run the UI separately, open [frontend](frontend) and install its dependencies once:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Optional `.env` for API base URL:
+Optional `.env` for API base URL if the frontend is not using the default backend port:
 
 ```bash
 VITE_API_URL=http://127.0.0.1:5000
@@ -322,6 +330,14 @@ VITE_API_URL=http://127.0.0.1:5000
 Frontend default URL (Vite):
 
 - `http://127.0.0.1:5173`
+
+## Operational Notes
+
+- Periodic scans pick the first readable path from `SYSTEM_LOGS` in [backend.py](backend.py)
+- Manual uploads are analyzed immediately and cached under `~/Documents/Forensic_Reports/manual-scans/`
+- JSON, CSV, and HTML artifacts are written under `~/Documents/Forensic_Reports/` in dated folders
+- The frontend listens for `new_forensic_data` and `scan_error` websocket events from the backend
+- The dashboard can replay archived periodic reports from `/api/reports`
 
 ## API Quick Reference
 
@@ -383,7 +399,7 @@ Additional useful options:
 
 ## Known Gaps and Improvement Opportunities
 
-- `requirements.txt` currently includes both Flask and FastAPI stacks; only Flask is used by [backend.py](backend.py)
+- The frontend still runs as a dev server; the repo does not include a production process manager or reverse proxy config yet
 - Schema alignment can be tightened between backend payload keys and frontend type contracts in [frontend/src/types.ts](frontend/src/types.ts)
 - No test suite exists yet for engine, API, or frontend components
 - Authentication/authorization is not enabled for API endpoints
