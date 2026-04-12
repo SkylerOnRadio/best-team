@@ -1,6 +1,33 @@
-# Foreign Threat Log Detection Platform
+<div align="center">
+  <img src="https://img.icons8.com/fluency/96/cyber-security.png" alt="Cyber Security" width="78" height="78" />
+  <h1>Foreign Threat Log Detection Platform</h1>
+  <p><strong>Evidence-first log forensics, risk intelligence, and real-time investigation workflow</strong></p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Python-Forensic%20Engine-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+    <img src="https://img.shields.io/badge/Flask-API-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
+    <img src="https://img.shields.io/badge/Socket.IO-Real--Time-010101?style=for-the-badge&logo=socketdotio&logoColor=white" alt="SocketIO" />
+    <img src="https://img.shields.io/badge/React-Dashboard-61DAFB?style=for-the-badge&logo=react&logoColor=0A192F" alt="React" />
+    <img src="https://img.shields.io/badge/TypeScript-Strongly%20Typed-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  </p>
+</div>
+
+---
 
 A full-stack cybersecurity monitoring platform that analyzes log files for timeline tampering, suspicious actor behavior, coordinated attacks, and advanced threat signals.
+
+## Quick Navigation
+
+| Section                 | Focus                               |
+| ----------------------- | ----------------------------------- |
+| Executive Summary       | Strategic overview and mission      |
+| Our USP                 | Unique product differentiation      |
+| Architecture Overview   | End-to-end technical design         |
+| Key Features            | Engine, APIs, reporting, dashboard  |
+| Deep Technical Analysis | Risk model and enrichment internals |
+| Setup and Run           | Local environment and launch flow   |
+| API Quick Reference     | Endpoint-level integration summary  |
+| Roadmap Snapshot        | Forward engineering direction       |
 
 ## Executive Summary
 
@@ -31,6 +58,33 @@ The project combines:
 - A Python forensic engine ([log.py](log.py)) for deep log analysis and report generation
 - A Flask + Socket.IO API service ([backend.py](backend.py)) for manual and scheduled scans
 - A React + TypeScript dashboard ([frontend/src/App.tsx](frontend/src/App.tsx)) for investigation workflows
+
+## Technology Logos
+
+<div align="center">
+  <img src="https://cdn.simpleicons.org/python/3776AB" alt="Python" width="38" height="38" />
+  &nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/flask/000000" alt="Flask" width="38" height="38" />
+  &nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/socketdotio/010101" alt="Socket.IO" width="38" height="38" />
+  &nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/react/61DAFB" alt="React" width="38" height="38" />
+  &nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/typescript/3178C6" alt="TypeScript" width="38" height="38" />
+  &nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/tailwindcss/06B6D4" alt="Tailwind CSS" width="38" height="38" />
+  &nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/vite/646CFF" alt="Vite" width="38" height="38" />
+</div>
+
+## Platform Snapshot
+
+| Layer              | Core Responsibility                          | Primary File                                                     |
+| ------------------ | -------------------------------------------- | ---------------------------------------------------------------- |
+| Detection Engine   | Parse, enrich, correlate, score threats      | [log.py](log.py)                                                 |
+| API + Scheduler    | Serve scans, stream updates, archive results | [backend.py](backend.py)                                         |
+| UI Experience      | Investigation workflow and visual analytics  | [frontend/src/App.tsx](frontend/src/App.tsx)                     |
+| Packaging Scaffold | CLI packaging/build support                  | [log_checker_cli/pyproject.toml](log_checker_cli/pyproject.toml) |
 
 ## Business and Security Value
 
@@ -65,6 +119,12 @@ Upload/System Log ---> backend.py ---> log.py analysis engine ---> results (dict
        |                 +--> JSON/CSV/HTML artifacts
        +--> frontend fetch + websocket <------+
 ```
+
+    ### Architecture At A Glance
+
+    | Input | Processing | Output |
+    |---|---|---|
+    | Manual upload or system log source | Timestamp integrity checks + threat signature pipeline + risk-zone computation | Live dashboard signals + archived JSON/CSV/HTML forensic artifacts |
 
 ### Runtime components
 
@@ -208,6 +268,9 @@ best-team/
 
 ## Setup and Run
 
+> [!TIP]
+> For best stability on Windows, run backend and frontend in separate terminals and keep the backend terminal active for scheduler + websocket events.
+
 ## Prerequisites
 
 - Python 3.10+
@@ -261,6 +324,13 @@ Frontend default URL (Vite):
 - `http://127.0.0.1:5173`
 
 ## API Quick Reference
+
+| Endpoint                         | Method | Purpose                                       |
+| -------------------------------- | ------ | --------------------------------------------- |
+| `/api/health`                    | GET    | Runtime health and active periodic log source |
+| `/api/analyze/manual`            | POST   | On-demand manual scan via uploaded log        |
+| `/api/reports`                   | GET    | Date-grouped list of periodic reports         |
+| `/api/reports/<date>/<filename>` | GET    | Fetch a specific archived periodic report     |
 
 ### `GET /api/health`
 
