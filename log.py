@@ -55,7 +55,7 @@ REPORT_ROOT_DIR = f"Forensic_Reports"
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Optimized IPv4 + IPv6 Dual Stack Regex
-IP_PATTERN = re.compile(
+IP_RE = re.compile(
     r'\b(?:'
     r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
     r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
@@ -79,6 +79,8 @@ IP_PATTERN = re.compile(
 )
 
 MONTH_MAP = {m: i for i, m in enumerate(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], 1)}
+
+DATE_REGEX = re.compile(r'\b(\d{4})[-/](\d{2})[-/](\d{2})[T\s](\d{2}):(\d{2}):(\d{2})\b')
 
 # Fallback Signatures
 SIGS_FALLBACK = {
@@ -142,47 +144,57 @@ def _iter_line_bytes(chunk_bytes: bytes) -> Generator[str, None, None]:
 
 def fast_parse_timestamp(line: str) -> Tuple[datetime, str]:
     """Optimized slicing: 10x faster than strptime for core formats.
-    
-    Handles:
-      - ISO-8601        : 2024-10-27T10:00:00  (line starts with date)
-      - Linux Syslog    : Oct 27 10:00:00       (line starts with month abbr)
-      - Apache/Nginx    : ... [27/Oct/2024:10:00:00 +0000] ...
-      - Windows Event   : 10/27/2024 10:00:00   (line starts with MM/DD/YYYY)
+    Includes regex fallback for embedded JSON or varied prefix formats.
     """
     if not line or len(line) < 15:
         return None, None
     try:
-        # ── ISO-8601  (2024-10-27T10:00:00 or 2024-10-27 10:00:00) ──────────
-        if len(line) >= 19 and line[4] == '-' and line[7] == '-':
+        # ── ISO-8601 & Nginx Error (2024-10-27 10:00:00 or 2024/10/27 10:00:00)
+        if len(line) >= 19 and line[4] in ('-', '/') and line[7] in ('-', '/'):
             return datetime(int(line[0:4]), int(line[5:7]), int(line[8:10]),
-                            int(line[11:13]), int(line[14:16]), int(line[17:19])), "ISO-8601"
+                            int(line[11:13]), int(line[14:16]), int(line[17:19])), "ISO-8601/Nginx Error"
  
         # ── Linux Syslog  (Oct 27 10:00:00) ─────────────────────────────────
-        month_abbr = line[0:3]
+        month_abbr = line[0:3].capitalize()
         if month_abbr in MONTH_MAP and len(line) >= 15:
-            day = int(line[4:6].strip())
-            dt = datetime(CURRENT_YEAR, MONTH_MAP[month_abbr], day,
-                          int(line[7:9]), int(line[10:12]), int(line[13:15]))
-            if dt > datetime.now() + timedelta(days=1):
-                dt = dt.replace(year=CURRENT_YEAR - 1)
-            return dt, "Linux Syslog"
+            day_str = line[4:6].strip()
+            if day_str.isdigit():
+                dt = datetime(CURRENT_YEAR, MONTH_MAP[month_abbr], int(day_str),
+                              int(line[7:9]), int(line[10:12]), int(line[13:15]))
+                if dt > datetime.now() + timedelta(days=1):
+                    dt = dt.replace(year=CURRENT_YEAR - 1)
+                return dt, "Linux Syslog"
  
         # ── Apache/Nginx  (... [27/Oct/2024:10:00:00 +0000] ...) ────────────
-        # The bracket can appear at different offsets depending on IP length,
-        # so we search for it rather than slicing at a fixed position.
         bracket = line.find('[')
-        if 0 < bracket < 50:                         # bracket must be near the start
+        if 0 <= bracket < 100:                       # Changed to allow bracket at index 0 and longer IP prefixes
             ts_part = line[bracket + 1:]
             if len(ts_part) >= 20 and ts_part[2] == '/' and ts_part[6] == '/':
-                day  = int(ts_part[0:2])
-                mon  = MONTH_MAP.get(ts_part[3:6])
+                day_str = ts_part[0:2].strip()
+                if day_str.isdigit():
+                    mon = MONTH_MAP.get(ts_part[3:6].capitalize())
+                    if mon:
+                        year = int(ts_part[7:11])
+                        hour = int(ts_part[12:14])
+                        minu = int(ts_part[15:17])
+                        sec  = int(ts_part[18:20])
+                        return datetime(year, mon, int(day_str), hour, minu, sec), "Web (Apache/Nginx)"
+            
+            # ── Apache Error Log ([Sun Oct 27 10:00:00.123 2024]) ───────────
+            if len(ts_part) >= 24 and ts_part[3] == ' ' and ts_part[7] == ' ':
+                mon = MONTH_MAP.get(ts_part[4:7].capitalize())
                 if mon:
-                    year = int(ts_part[7:11])
-                    hour = int(ts_part[12:14])
-                    minu = int(ts_part[15:17])
-                    sec  = int(ts_part[18:20])
-                    return datetime(year, mon, day, hour, minu, sec), "Web (Apache/Nginx)"
- 
+                    day_str = ts_part[8:10].strip()
+                    if day_str.isdigit():
+                        hour = int(ts_part[11:13])
+                        minu = int(ts_part[14:16])
+                        sec = int(ts_part[17:19])
+                        rb = ts_part.find(']')
+                        if rb != -1:
+                            year_str = ts_part[rb-4:rb]
+                            if year_str.isdigit():
+                                return datetime(int(year_str), mon, int(day_str), hour, minu, sec), "Apache Error"
+
         # ── Windows Event  (10/27/2024 10:00:00) ────────────────────────────
         if len(line) >= 19 and line[2] == '/' and line[5] == '/':
             return datetime(int(line[6:10]), int(line[0:2]), int(line[3:5]),
@@ -190,6 +202,16 @@ def fast_parse_timestamp(line: str) -> Tuple[datetime, str]:
  
     except (ValueError, IndexError):
         pass
+        
+    # ── Fallback Regex (For JSON fields, indented lines, etc.) ───────────────
+    try:
+        m = DATE_REGEX.search(line)
+        if m:
+            return datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)),
+                            int(m.group(4)), int(m.group(5)), int(m.group(6))), "ISO-8601 (Embedded)"
+    except ValueError:
+        pass
+
     return None, None
 
 def _throttle_init(cpu_limit_pct: float) -> Dict:
@@ -928,10 +950,10 @@ def scan_log(filepath, threshold_seconds, ioc_set=frozenset(), compare_filepath=
         res = rq.get()
         if "error" in res: continue
         merged_gaps.extend(res["gaps"])
-        total_lines += res["t_lines"]; parsed_lines += res["p_lines"]; obfuscated_cnt += res["obf_cnt"]
+        total_lines += res["total_lines"]; parsed_lines += res["parsed_lines"]; obfuscated_cnt += res["obfuscated_count"]
         log_type = log_type or res["log_type"]
-        merged_templates.update(res["templates"])
-        for bucket_key, events in res["t_buckets"].items():
+        merged_templates.update(res["template_counts"])
+        for bucket_key, events in res["time_buckets"].items():
             time_buckets[bucket_key].extend(events)
         for ip, s in res["ip_stats"].items():
             if ip not in merged_ip_stats: merged_ip_stats[ip] = s
