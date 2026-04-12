@@ -55,7 +55,28 @@ REPORT_ROOT_DIR = f"Forensic_Reports"
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Optimized IPv4 + IPv6 Dual Stack Regex
-IP_RE = re.compile(r'\b(?:(?:[0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))\b')
+IP_PATTERN = re.compile(
+    r'\b(?:'
+    r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
+    r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
+    r'|'
+    r'(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,7}:'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}'
+    r'|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}'
+    r'|:(?::[0-9a-fA-F]{1,4}){1,7}'
+    r'|::(?:ffff(?::0{1,4})?:)?'
+      r'(?:(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])\.){3}'
+      r'(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])'
+    r'|(?:[0-9a-fA-F]{1,4}:){1,4}:'
+      r'(?:(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])\.){3}'
+      r'(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])'
+    r')\b'
+)
 
 MONTH_MAP = {m: i for i, m in enumerate(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], 1)}
 
@@ -119,24 +140,56 @@ def _iter_line_bytes(chunk_bytes: bytes) -> Generator[str, None, None]:
         yield chunk_bytes[start:pos].decode('utf-8', 'replace')
         start = pos + 1
 
-def fast_parse_timestamp(line: str) -> Tuple[Optional[datetime], Optional[str]]:
-    """Optimized slicing: 10x faster than strptime for core formats."""
+def fast_parse_timestamp(line: str) -> Tuple[datetime, str]:
+    """Optimized slicing: 10x faster than strptime for core formats.
+    
+    Handles:
+      - ISO-8601        : 2024-10-27T10:00:00  (line starts with date)
+      - Linux Syslog    : Oct 27 10:00:00       (line starts with month abbr)
+      - Apache/Nginx    : ... [27/Oct/2024:10:00:00 +0000] ...
+      - Windows Event   : 10/27/2024 10:00:00   (line starts with MM/DD/YYYY)
+    """
+    if not line or len(line) < 15:
+        return None, None
     try:
-        # ISO-8601 Check (2024-10-27...)
-        if line[4] == '-' and line[7] == '-':
-            return datetime(int(line[0:4]), int(line[5:7]), int(line[8:10]), 
+        # ── ISO-8601  (2024-10-27T10:00:00 or 2024-10-27 10:00:00) ──────────
+        if len(line) >= 19 and line[4] == '-' and line[7] == '-':
+            return datetime(int(line[0:4]), int(line[5:7]), int(line[8:10]),
                             int(line[11:13]), int(line[14:16]), int(line[17:19])), "ISO-8601"
-
-        # Linux Syslog Check (Oct 27 10:00:00)
+ 
+        # ── Linux Syslog  (Oct 27 10:00:00) ─────────────────────────────────
         month_abbr = line[0:3]
-        if month_abbr in MONTH_MAP:
+        if month_abbr in MONTH_MAP and len(line) >= 15:
             day = int(line[4:6].strip())
-            dt = datetime(CURRENT_YEAR, MONTH_MAP[month_abbr], day, 
+            dt = datetime(CURRENT_YEAR, MONTH_MAP[month_abbr], day,
                           int(line[7:9]), int(line[10:12]), int(line[13:15]))
             if dt > datetime.now() + timedelta(days=1):
                 dt = dt.replace(year=CURRENT_YEAR - 1)
             return dt, "Linux Syslog"
-    except: pass
+ 
+        # ── Apache/Nginx  (... [27/Oct/2024:10:00:00 +0000] ...) ────────────
+        # The bracket can appear at different offsets depending on IP length,
+        # so we search for it rather than slicing at a fixed position.
+        bracket = line.find('[')
+        if 0 < bracket < 50:                         # bracket must be near the start
+            ts_part = line[bracket + 1:]
+            if len(ts_part) >= 20 and ts_part[2] == '/' and ts_part[6] == '/':
+                day  = int(ts_part[0:2])
+                mon  = MONTH_MAP.get(ts_part[3:6])
+                if mon:
+                    year = int(ts_part[7:11])
+                    hour = int(ts_part[12:14])
+                    minu = int(ts_part[15:17])
+                    sec  = int(ts_part[18:20])
+                    return datetime(year, mon, day, hour, minu, sec), "Web (Apache/Nginx)"
+ 
+        # ── Windows Event  (10/27/2024 10:00:00) ────────────────────────────
+        if len(line) >= 19 and line[2] == '/' and line[5] == '/':
+            return datetime(int(line[6:10]), int(line[0:2]), int(line[3:5]),
+                            int(line[11:13]), int(line[14:16]), int(line[17:19])), "Windows Event"
+ 
+    except (ValueError, IndexError):
+        pass
     return None, None
 
 def _throttle_init(cpu_limit_pct: float) -> Dict:
@@ -872,14 +925,15 @@ def scan_log(filepath, threshold_seconds, ioc_set=frozenset(), compare_filepath=
     time_buckets = defaultdict(list)
     
     for _ in range(n_expected):
-        p_res = rq.get()
-        if "error" in p_res: continue
-        merged_gaps.extend(p_res["gaps"])
-        total_lines += p_res["total_lines"]; parsed_lines += p_res["parsed_lines"]
-        obfuscated_cnt += p_res["obfuscated_count"]
-        if not log_type: log_type = p_res["log_type"]
-        merged_templates.update(p_res["template_counts"])
-        for ip, s in p_res["ip_stats"].items():
+        res = rq.get()
+        if "error" in res: continue
+        merged_gaps.extend(res["gaps"])
+        total_lines += res["t_lines"]; parsed_lines += res["p_lines"]; obfuscated_cnt += res["obf_cnt"]
+        log_type = log_type or res["log_type"]
+        merged_templates.update(res["templates"])
+        for bucket_key, events in res["t_buckets"].items():
+            time_buckets[bucket_key].extend(events)
+        for ip, s in res["ip_stats"].items():
             if ip not in merged_ip_stats: merged_ip_stats[ip] = s
             else:
                 merged_ip_stats[ip]["hits"] += s["hits"]; merged_ip_stats[ip]["tags"].update(s["tags"])
