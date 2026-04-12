@@ -48,7 +48,7 @@ class C:
 
 PROJECT_NAME    = "Log Detector and Foreign Threat Analysis"
 PROJECT_VERSION = "2.2.1"
-REPORT_ROOT_DIR = f"Reports - {PROJECT_NAME}"
+REPORT_ROOT_DIR = f"Forensic_Reports"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── GLOBAL PRE-COMPILED PATTERNS ──────────────────────────────────────────────
@@ -374,17 +374,48 @@ def _risk_score(gaps: list, threats: list) -> int:
     # Cap at 99%
     return min(int(final_prob * 100), 99)
 
-def resolve_output_dir() -> str:
+def resolve_output_dir() -> Dict[str, str]:
+    """
+    Creates: ~/Documents/Reports - Log Detector/[csv|html|json]/DD-MM-YYYY/
+    """
+    date_str = datetime.now().strftime("%d-%m-%Y")
     documents = os.path.join(os.path.expanduser("~"), "Documents", REPORT_ROOT_DIR)
-    date_dir = os.path.join(documents, datetime.now().strftime("%d-%m-%Y"))
-    os.makedirs(date_dir, exist_ok=True); return date_dir
+    
+    dirs = {
+        "csv":  os.path.join(documents, "csv", date_str),
+        "html": os.path.join(documents, "html", date_str),
+        "json": os.path.join(documents, "json", date_str),
+    }
+    
+    # Create all necessary subdirectories
+    for d in dirs.values():
+        os.makedirs(d, exist_ok=True)
+        
+    return dirs
 
-def make_output_paths(out_dir: str) -> Dict[str, str]:
+def make_output_paths(dirs: Dict[str, str]) -> Dict[str, str]:
+    """
+    Generates file paths dynamically checking the directory for the Nth scan.
+    Format: x_filename_HH-MM-SS.ext
+    """
     ts = datetime.now().strftime("%H-%M-%S")
-    return {"csv_integrity": os.path.join(out_dir, f"1_{ts}_integrity.csv"),
-            "csv_behavioral": os.path.join(out_dir, f"2_{ts}_behavioral.csv"),
-            "html": os.path.join(out_dir, f"3_{ts}_dashboard.html"),
-            "json": os.path.join(out_dir, f"4_{ts}_report.json")}
+    
+    # Calculate 'x' by checking existing files in the 'csv' directory for today
+    highest_n = 0
+    for filename in os.listdir(dirs["csv"]):
+        match = re.match(r"^(\d+)_", filename)
+        if match:
+            highest_n = max(highest_n, int(match.group(1)))
+            
+    n = highest_n + 1
+
+    return {
+        "csv_integrity":  os.path.join(dirs["csv"], f"{n}_integrity_{ts}.csv"),
+        "csv_behavioral": os.path.join(dirs["csv"], f"{n}_behavioral_{ts}.csv"),
+        "html":           os.path.join(dirs["html"], f"{n}_dashboard_{ts}.html"),
+        "json":           os.path.join(dirs["json"], f"{n}_report_{ts}.json")
+    }
+
 
 def to_file_url(path: str) -> str:
     abs_path = os.path.abspath(path).replace("\\", "/")
@@ -414,7 +445,6 @@ def report_csv_integrity(result: Dict, path: str) -> None:
         w.writeheader()
         for g in result["gaps"]:
             w.writerow({k: g.get(k,"N/A") for k in fields})
-    print(f"{C.GREEN}[✓]{C.RESET} Integrity CSV      → {path}")
 
 def report_csv_behavioral(result: Dict, path: str) -> None:
     fields = ["ip","hits","span","kill_chain_score", "session_count","is_ioc","risk_tags"]
@@ -429,12 +459,10 @@ def report_csv_behavioral(result: Dict, path: str) -> None:
                 "is_ioc": t.get("is_ioc", False),
                 "risk_tags": ", ".join(t["risk_tags"]),
             })
-    print(f"{C.GREEN}[✓]{C.RESET} Behavioral CSV     → {path}")
 
 def report_json(result: Dict, path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, default=str)
-    print(f"{C.GREEN}[✓]{C.RESET} JSON Report        → {path}")
 
 def _build_zone_breakdown_html(breakdown: Dict) -> str:
     ZONE_META = {
@@ -663,7 +691,6 @@ footer{{text-align:center;color:var(--secondary);font-size:11px;padding:20px 0}}
 </div></body></html>"""
 
     with open(path, "w", encoding="utf-8") as f: f.write(html_content)
-    print(f"{C.GREEN}[✓]{C.RESET} HTML Dashboard     → {path}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -773,16 +800,9 @@ def report_terminal(result: Dict, filepath: str, out_paths: Dict[str, str]) -> N
                   f"{g.get('duration_human','N/A'):<20} "
                   f"{g.get('start_line', 'N/A')}-{g.get('end_line', 'N/A')}")
 
-    #print(f"\n {C.BOLD}[OUTPUT FILES]{C.RESET}")
-    #for label, key in (
-     #   ("1 · Integrity CSV  ", "csv_integrity"),
-      #  ("2 · Behavioral CSV ", "csv_behavioral"),
-       # ("3 · HTML Dashboard ", "html"),
-        #("4 · JSON Report    ", "json"),
-    #):
-     #   print(f"  {C.DIM}{label}{C.RESET}  {C.CYAN}{out_paths[key]}{C.RESET}")
+   
 
-    #print(f"\n{C.BOLD}{'━'*W}{C.RESET}\n")
+    print(f"\n{C.BOLD}{'━'*W}{C.RESET}\n")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── MAIN ORCHESTRATOR ─────────────────────────────────────────────────────────
@@ -933,12 +953,16 @@ def main():
             for line in f:
                 if IP_RE.match(line.strip()): ioc_set.add(line.strip())
     
-    out_dir = resolve_output_dir()
-    out_paths = make_output_paths(out_dir)
+    # 1. Get the dictionary of output directories
+    out_dirs = resolve_output_dir()
+    out_paths = make_output_paths(out_dirs)
     n_workers = args.workers or max(1, (os.cpu_count() or 2) // 2)
 
+    # 2. Get a clean string for the base output folder to print to the terminal
+    base_doc_path = os.path.join(os.path.expanduser("~"), "Documents", REPORT_ROOT_DIR)
+
     print(f"\n{C.CYAN}[*] {PROJECT_NAME} v{PROJECT_VERSION}{C.RESET}")
-    print(f"{C.DIM}[*] Output folder : {out_dir}{C.RESET}")
+    print(f"{C.DIM}[*] Output folder : {base_doc_path}{C.RESET}")
     print(f"{C.DIM}[*] Scanning      : {args.logfile}{C.RESET}\n")
 
     result = scan_log(
@@ -952,18 +976,21 @@ def main():
     )
     
     fmt = args.format
-    #if fmt in ("all", "terminal"):
-    #    report_terminal(result, args.logfile, out_paths)
-    #if fmt in ("all", "csv"):
-    #    report_csv_integrity(result, out_paths["csv_integrity"])
-    #    report_csv_behavioral(result, out_paths["csv_behavioral"])
-    #if fmt in ("all", "html"):
-    #    report_html(result, args.logfile, out_paths["html"])
-    #if fmt in ("all", "json"):
-    #    report_json(result, out_paths["json"])
+    
+    # 3. UNCOMMENTED: Actually generate the reports!
+    if fmt in ("all", "terminal"):
+        report_terminal(result, args.logfile, out_paths)
+    if fmt in ("all", "csv"):
+        report_csv_integrity(result, out_paths["csv_integrity"])
+        report_csv_behavioral(result, out_paths["csv_behavioral"])
+    if fmt in ("all", "html"):
+        report_html(result, args.logfile, out_paths["html"])
+    if fmt in ("all", "json"):
+        report_json(result, out_paths["json"])
 
     if fmt != "terminal":
-        print(f"\n{C.BOLD}{C.GREEN}[✓] All reports → {out_dir}{C.RESET}")
+        # 4. Use base_doc_path instead of out_dirs to avoid printing a raw dictionary
+        print(f"\n{C.BOLD}{C.GREEN}[✓] All reports → {base_doc_path}{C.RESET}")
         print(f"    📁 {to_file_url(out_paths['csv_integrity'])}")
         print(f"    📁 {to_file_url(out_paths['csv_behavioral'])}")
         print(f"    🌐 {to_file_url(out_paths['html'])}")
