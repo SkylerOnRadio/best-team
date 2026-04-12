@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://img.icons8.com/fluency/96/cyber-security.png" alt="Cyber Security" width="78" height="78" />
-  <h1>Foreign Threat Log Detection Platform</h1>
+  <h1>Log Detector and Foreign Threat Analysis</h1>
   <p><strong>Evidence-first log forensics, risk intelligence, and real-time investigation workflow</strong></p>
 
   <p>
