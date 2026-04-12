@@ -1,0 +1,33 @@
+{
+  "SQL_INJECTION": "union.*select|select.*from|information_schema",
+  
+  "RANSOMWARE_HINT": "encrypt|decrypt|locked|payment",
+
+  "FAILED_LOGIN": "failed|invalid user|auth fail|password|denied|incorrect|authentication failure|bad password|login failed|access denied",
+  
+  "PRIV_ESCALATION": "sudo|su -|privilege|elevated|root|uid=0|chmod 777|visudo|pkexec|doas|newgrp|setuid|setgid",
+  
+  "SCANNING": "nmap|scan|probe|port|nikto|masscan|zmap|dirbuster|gobuster|ffuf|nuclei|wpscan|sqlmap|commix",
+  
+  "SQL_INJECTION": "select.*from|union.*select|insert.*into|drop.*table|update.*set|information_schema|benchmark\\(|pg_sleep|ord\\(|mid\\(|group_concat",
+  
+  "XSS_ATTACK": "<script|alert\\(|onerror|onload|document\\.cookie|String\\.fromCharCode|eval\\(|base64.*decode",
+  
+  "PATH_TRAVERSAL": "\\.\\.\\/|\\.\\.\\\\|%2e%2e%2f|/etc/passwd|/etc/shadow|/etc/group|/boot\\.ini|/windows/win\\.ini|/proc/self",
+  
+  "CMD_INJECTION": ";\\s*cat|;\\s*ls|&\\s*id|\\|\\s*whoami|`id`|\\$\\((whoami|id|ls|cat|curl|wget)\\)",
+  
+  "LOG_TAMPERING": "rm .*log|truncate|shred|history -c|clear-log|killall -9 syslogd|echo.*>.*\\.log|> /var/log|unlink.*log|wipe|auditctl -e 0|unset HISTFILE",
+  
+  "SENSITIVE_ACCESS": "\\.ssh/|id_rsa|config\\.php|\\.env|/root/\\.|lsass|SAM database|\\.htpasswd|wp-config\\.php|database\\.yml|id_dsa|\\.bash_history",
+  
+  "SERVICE_EVENTS": "restarted|shutdown|panic|segfault|crashed|oom-killer|kernel: BUG|double free|use-after-free|stack smashing|SIGTERM|SIGKILL",
+  
+  "DATA_EXFIL": "curl.*http|wget.*http|nc -e|/dev/tcp|/dev/udp|python.*socket|powershell.*download|certutil.*url|bitsadmin.*transfer|tftp -i",
+  
+  "REVERSE_SHELL": "bash -i >& /dev/tcp|python -c.*socket\\.socket|php -r.*fsockopen|perl -e.*socket\\(S,PF_INET,SOCK_STREAM|ruby -rsocket -e.*TCPSocket",
+  
+  "LATERAL_MOVEMENT": "ssh.*@|scp |rsync |psexec|wmic|net use \\\\\\\\|xfreerdp|rdesktop|winrm|evil-winrm|impacket|smbclient|mimikatz",
+  
+  "RANSOMWARE_HINT": "\\.crypt|\\.locked|\\.crypted|\\.vssadmin|delete shadows|bcdedit /set.*recoveryenabled No|cipher /w|wbadmin delete catalog"
+}

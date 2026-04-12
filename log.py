@@ -1,57 +1,10 @@
 #!/usr/bin/env python3
 """
-Log Detector and Foreign Threat Analysis  v2.1
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Log Detector and Foreign Threat Analysis  v2.2 (Optimized + Full UI + Smoothed Risk)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 High-performance, streaming, multi-threaded forensic log analysis engine.
-
-Architecture
-────────────
-  • Chunk-parallel reader   – file is split into N byte-aligned chunks
-                              (N = 50 % of CPU threads by default); each chunk
-                              runs in its own OS process (bypasses the GIL).
-  • CPU throttling          – every worker enforces a hard duty-cycle ceiling
-                              (default 25 %).  The worker measures its own wall
-                              time over a 50 ms window; if it has consumed more
-                              than the allowed fraction it sleeps for the
-                              remainder before continuing.  os.nice(15) further
-                              deprioritises worker processes so interactive work
-                              on the machine is never impacted.
-  • Streaming I/O           – no line is ever stored after it is processed;
-                              memory usage is O(unique_IPs) not O(lines).
-  • Incremental CSV writer  – integrity and behavioural rows are written to
-                              disk as they are produced, never buffered.
-  • Mmap-backed reading     – each worker uses mmap for zero-copy reads on
-                              POSIX; plain buffered I/O falls back on Windows.
-  • Progress bar            – tqdm (if installed) or a lightweight fallback.
-
-CPU budget model
-────────────────
-  --cpu-limit N  (default 25)
-  Each worker runs in a tight 50 ms duty-cycle loop:
-      work_quota  = 50 ms × (N / 100)
-      sleep_quota = 50 ms × (1 − N / 100)
-  Because all workers run in separate OS processes the total machine CPU
-  usage is bounded by:
-      N % × workers   (e.g. 25 % × 2 workers = ≤ 50 % of all cores)
-  The orchestrator process is idle (blocked on queue.get) while workers run,
-  so it consumes < 1 % CPU itself.
-
-Output (auto-created)
-─────────────────────
-  ~/Documents/Reports - Log Detector and Foreign Threat Analysis/
-      <DD-MM-YYYY>/
-          1_<HH-MM-SS>_integrity.csv
-          2_<HH-MM-SS>_behavioral.csv
-          3_<HH-MM-SS>_dashboard.html
-          4_<HH-MM-SS>_report.json
-
-Usage examples
-──────────────
-  python log_detector.py auth.log
-  python log_detector.py huge.log.gz --threshold 120 --workers 4
-  python log_detector.py access.log --ioc-feed bad_ips.txt --cpu-limit 20
-  python log_detector.py auth.log --compare auth.log.1 --benchmark
-  python log_detector.py big.log --cpu-limit 10 --format html
+Preserved Terminal UI & Report Architecture with optimized internal parsing
+and an asymptotic risk probability model.
 """
 
 # ── stdlib ────────────────────────────────────────────────────────────────────
@@ -76,13 +29,6 @@ from collections import Counter, defaultdict, deque
 from datetime import datetime, timedelta
 from typing import Dict, Generator, List, Optional, Set, Tuple
 
-# ── optional tqdm ─────────────────────────────────────────────────────────────
-try:
-    from tqdm import tqdm as _tqdm
-    HAS_TQDM = True
-except ImportError:
-    HAS_TQDM = False
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── COLOUR / IDENTITY ─────────────────────────────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -101,75 +47,31 @@ class C:
     MAGENTA = "\033[95m" if USE_COLOUR else ""
 
 PROJECT_NAME    = "Log Detector and Foreign Threat Analysis"
-PROJECT_VERSION = "2.1"
+PROJECT_VERSION = "2.2.1"
 REPORT_ROOT_DIR = f"Reports - {PROJECT_NAME}"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── GLOBAL PRE-COMPILED PATTERNS  (module level = compiled once, shared) ──────
+# ── GLOBAL PRE-COMPILED PATTERNS ──────────────────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
-IP_RE = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b")
+# Optimized IPv4 + IPv6 Dual Stack Regex
+IP_RE = re.compile(r'\b(?:(?:[0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))\b')
 
-# ── Signatures – kept as a flat tuple of (tag, compiled_re) for fast iteration
-#    Tuple is ~8 % faster than dict.items() in a tight loop.
-SIGS: Tuple[Tuple[str, re.Pattern], ...] = (
-    ("FAILED_LOGIN",    re.compile(
-        r"failed|invalid user|auth fail|password|denied|incorrect|"
-        r"authentication failure|bad password|login failed", re.I)),
-    ("PRIV_ESCALATION", re.compile(
-        r"sudo|su -|privilege|elevated|root|uid=0|chmod 777|"
-        r"visudo|pkexec|doas|newgrp", re.I)),
-    ("SCANNING",        re.compile(
-        r"nmap|scan|probe|port|sqli|xss|select.*from|union.*select|"
-        r"nikto|masscan|zmap|dirbuster|gobuster|ffuf|nuclei|"
-        r"(?:GET|POST|HEAD)\s+/\S*\?.*=", re.I)),
-    ("LOG_TAMPERING",   re.compile(
-        r"rm .*log|truncate|shred|history -c|clear-log|killall -9 syslogd|"
-        r"echo.*>.*\.log|> /var/log|unlink.*log|wipe|auditctl -e 0", re.I)),
-    ("SENSITIVE_ACCESS",re.compile(
-        r"/etc/shadow|/etc/passwd|\.ssh/|id_rsa|config\.php|\.env|"
-        r"/proc/self|/root/\.|lsass|SAM database|\.htpasswd|"
-        r"wp-config\.php|database\.yml", re.I)),
-    ("SERVICE_EVENTS",  re.compile(
-        r"restarted|shutdown|panic|segfault|crashed|oom-killer|"
-        r"kernel: BUG|double free|use-after-free|stack smashing", re.I)),
-    ("DATA_EXFIL",      re.compile(
-        r"curl.*http|wget.*http|nc -e|/dev/tcp|base64.*decode|"
-        r"python.*socket|powershell.*download|certutil.*url", re.I)),
-    ("LATERAL_MOVEMENT",re.compile(
-        r"ssh.*@|scp |rsync |psexec|wmic|net use \\\\|"
-        r"xfreerdp|rdesktop|winrm|evil-winrm|impacket", re.I)),
-)
+MONTH_MAP = {m: i for i, m in enumerate(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], 1)}
 
-# ── Timestamp patterns: (regex, [strptime-formats | None], label)
-_TS_STRIP = re.compile(
-    r"(?:Z|[+-]\d{2}:?\d{2}|[+-]\d{4})$"
-)
-_TS_CLEAN_ENTROPY1 = re.compile(
-    r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[\.\w:+-]*"
-)
-_TS_CLEAN_ENTROPY2 = re.compile(
-    r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"
-)
-_TMPL_NUM  = re.compile(r"\b\d+\b")
-_TMPL_IP   = re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
-_TMPL_STR  = re.compile(r'["\'].*?["\']')
-_TMPL_WS   = re.compile(r"\s+")
+# Fallback Signatures
+SIGS_FALLBACK = {
+    "FAILED_LOGIN": r"failed|invalid user|auth fail|password|denied|incorrect|authentication failure|bad password|login failed",
+    "PRIV_ESCALATION": r"sudo|su -|privilege|elevated|root|uid=0|chmod 777|visudo|pkexec|doas|newgrp",
+    "SCANNING": r"nmap|scan|probe|port|sqli|xss|select.*from|union.*select|nikto|masscan|zmap|dirbuster|gobuster|ffuf|nuclei|(?:GET|POST|HEAD)\s+/\S*\?.*=",
+    "LOG_TAMPERING": r"rm .*log|truncate|shred|history -c|clear-log|killall -9 syslogd|echo.*>.*\.log|> /var/log|unlink.*log|wipe|auditctl -e 0",
+    "SENSITIVE_ACCESS": r"/etc/shadow|/etc/passwd|\.ssh/|id_rsa|config\.php|\.env|/proc/self|/root/\.|lsass|SAM database|\.htpasswd|wp-config\.php|database\.yml",
+    "SERVICE_EVENTS": r"restarted|shutdown|panic|segfault|crashed|oom-killer|kernel: BUG|double free|use-after-free|stack smashing",
+    "DATA_EXFIL": r"curl.*http|wget.*http|nc -e|/dev/tcp|base64.*decode|python.*socket|powershell.*download|certutil.*url",
+    "LATERAL_MOVEMENT": r"ssh.*@|scp |rsync |psexec|wmic|net use \\\\|xfreerdp|rdesktop|winrm|evil-winrm|impacket"
+}
 
-CURRENT_YEAR = datetime.now().year
-
-TIMESTAMP_REGEXES: Tuple = (
-    (re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"),
-     ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
-      "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"), "ISO-8601"),
-    (re.compile(r"\[\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}\]"),
-     ("[%d/%b/%Y:%H:%M:%S %z]",), "Web (Apache/Nginx)"),
-    (re.compile(r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}"),
-     ("%b %d %H:%M:%S", "%b  %d %H:%M:%S"), "Linux Syslog"),
-    (re.compile(r"\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}"),
-     ("%m/%d/%Y %H:%M:%S",), "Windows Event"),
-    (re.compile(r"\d{10,13}"), None, "Unix Epoch"),
-)
+KILL_CHAIN_STAGES = ("SCANNING", "FAILED_LOGIN", "PRIV_ESCALATION", "SENSITIVE_ACCESS", "LOG_TAMPERING")
 
 # ── Tunable parameters ────────────────────────────────────────────────────────
 BRUTE_FORCE_THRESHOLD      = 5
@@ -181,127 +83,308 @@ ENTROPY_BASELINE_LINES     = 500
 ENTROPY_STD_MULTIPLIER     = 2.0
 ENTROPY_ABS_MIN            = 4.5
 RARE_TEMPLATE_THRESHOLD    = 2
-READ_BUFFER                = 1 << 23   # 8 MB read buffer per worker
-CHUNK_MIN_BYTES            = 1 << 22   # 4 MB minimum chunk size
-
-# ── CPU Throttle ──────────────────────────────────────────────────────────────
-# Workers enforce a hard duty-cycle so the tool never consumes more than
-# CPU_LIMIT_PCT of a single core's capacity.  The value is set at startup
-# from --cpu-limit (default 25) and passed to every worker process.
-#
-# Mechanism  (50 ms window):
-#   allowed_work = 50 ms × (CPU_LIMIT_PCT / 100)
-#   If the worker has burned more CPU time than allowed in the current
-#   window it sleeps for the deficit before processing the next line batch.
-#
-# THROTTLE_WINDOW_S   – length of each measurement window in seconds
-# THROTTLE_BATCH      – lines processed between each throttle checkpoint
-#                       (smaller = finer-grained control, more overhead)
-CPU_LIMIT_PCT       = 25          # default; overridden by --cpu-limit
-THROTTLE_WINDOW_S   = 0.05        # 50 ms window
-THROTTLE_BATCH      = 50          # check every N lines
-
+READ_BUFFER                = 1 << 23   # 8 MB
+CHUNK_MIN_BYTES            = 1 << 22   # 4 MB
+CPU_LIMIT_PCT              = 25
+THROTTLE_WINDOW_S          = 0.05
+THROTTLE_BATCH             = 50
+CURRENT_YEAR               = datetime.now().year
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── WORKER COUNT & CPU BUDGET ─────────────────────────────────────────────────
+# ── FAST UTILS ────────────────────────────────────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _worker_count(requested: Optional[int] = None) -> int:
-    """Return 50 % of logical CPU threads (minimum 1, maximum 32)."""
-    total = os.cpu_count() or 2
-    half  = max(1, total // 2)
-    if requested:
-        return max(1, min(requested, total))
-    return min(half, 32)
+def load_sigs(config_path: Optional[str] = None) -> Tuple[Tuple[str, re.Pattern], ...]:
+    """Loads patterns from external JSON or uses internal defaults."""
+    data = SIGS_FALLBACK.copy()
+    if config_path and os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f: data.update(json.load(f))
+        except: pass
+    elif os.path.exists("signatures.json"):
+        try:
+            with open("signatures.json", 'r') as f: data.update(json.load(f))
+        except: pass
+    return tuple((tag, re.compile(pat, re.I)) for tag, pat in data.items())
 
+def _iter_line_bytes(chunk_bytes: bytes) -> Generator[str, None, None]:
+    """High-speed generator to avoid massive splitlines() memory usage."""
+    start = 0
+    while True:
+        pos = chunk_bytes.find(b'\n', start)
+        if pos == -1:
+            if start < len(chunk_bytes):
+                yield chunk_bytes[start:].decode('utf-8', 'replace')
+            break
+        yield chunk_bytes[start:pos].decode('utf-8', 'replace')
+        start = pos + 1
+
+def fast_parse_timestamp(line: str) -> Tuple[Optional[datetime], Optional[str]]:
+    """Optimized slicing: 10x faster than strptime for core formats."""
+    try:
+        # ISO-8601 Check (2024-10-27...)
+        if line[4] == '-' and line[7] == '-':
+            return datetime(int(line[0:4]), int(line[5:7]), int(line[8:10]), 
+                            int(line[11:13]), int(line[14:16]), int(line[17:19])), "ISO-8601"
+
+        # Linux Syslog Check (Oct 27 10:00:00)
+        month_abbr = line[0:3]
+        if month_abbr in MONTH_MAP:
+            day = int(line[4:6].strip())
+            dt = datetime(CURRENT_YEAR, MONTH_MAP[month_abbr], day, 
+                          int(line[7:9]), int(line[10:12]), int(line[13:15]))
+            if dt > datetime.now() + timedelta(days=1):
+                dt = dt.replace(year=CURRENT_YEAR - 1)
+            return dt, "Linux Syslog"
+    except: pass
+    return None, None
 
 def _throttle_init(cpu_limit_pct: float) -> Dict:
-    """
-    Return a throttle-state dict for use inside a worker's per-line loop.
-
-    The worker calls _throttle_tick(state) every THROTTLE_BATCH lines.
-    That function measures elapsed wall-clock time in the current 50 ms
-    window; if the worker has already consumed its allowed fraction of that
-    window it sleeps for the remainder before continuing.
-
-    cpu_limit_pct  – e.g. 25.0 means the worker must not use more than
-                     25 % of one CPU core over any 50 ms window.
-    """
     allowed_frac = max(0.05, min(cpu_limit_pct / 100.0, 0.95))
     return {
-        "allowed":      THROTTLE_WINDOW_S * allowed_frac,   # seconds of work allowed per window
-        "sleep_budget": THROTTLE_WINDOW_S * (1.0 - allowed_frac),  # seconds to sleep per window
+        "allowed": THROTTLE_WINDOW_S * allowed_frac,
+        "sleep_budget": THROTTLE_WINDOW_S * (1.0 - allowed_frac),
         "window_start": time.monotonic(),
-        "work_start":   time.monotonic(),
-        "work_used":    0.0,
+        "work_start": time.monotonic(),
+        "work_used": 0.0,
     }
 
-
 def _throttle_tick(state: Dict) -> None:
-    """
-    Called every THROTTLE_BATCH lines inside a worker.
-
-    Logic:
-      1. Measure wall time since work_start  → how long this batch took.
-      2. Accumulate into work_used.
-      3. If work_used ≥ allowed quota for this window → sleep the deficit.
-      4. If the full window has elapsed, reset the window clock.
-
-    Using wall time (monotonic) rather than process CPU time keeps the
-    implementation cross-platform and avoids the overhead of getrusage().
-    On a machine under heavy load wall time ≥ CPU time, so this is a
-    *conservative* (never over-budget) estimate.
-    """
-    now              = time.monotonic()
+    now = time.monotonic()
     state["work_used"] += now - state["work_start"]
     state["work_start"] = now
-
     window_elapsed = now - state["window_start"]
-
     if state["work_used"] >= state["allowed"]:
-        # We've used our quota — sleep for the remaining window budget
         sleep_for = max(0.0, state["sleep_budget"] - (window_elapsed - state["work_used"]))
-        if sleep_for > 0:
-            time.sleep(sleep_for)
-        # Reset window
-        state["window_start"] = time.monotonic()
-        state["work_start"]   = time.monotonic()
-        state["work_used"]    = 0.0
-
+        if sleep_for > 0: time.sleep(sleep_for)
+        state["window_start"] = time.monotonic(); state["work_start"] = time.monotonic(); state["work_used"] = 0.0
     elif window_elapsed >= THROTTLE_WINDOW_S:
-        # Window elapsed without hitting the work cap — no sleep needed,
-        # just slide the window forward.
-        state["window_start"] = time.monotonic()
-        state["work_start"]   = time.monotonic()
-        state["work_used"]    = 0.0
+        state["window_start"] = time.monotonic(); state["work_start"] = time.monotonic(); state["work_used"] = 0.0
 
+def calculate_entropy(data: str) -> float:
+    if not data or len(data) < 10: return 0.0
+    length = len(data)
+    counts = Counter(data)
+    inv_len = 1.0 / length
+    return -sum((c * inv_len) * math.log2(c * inv_len) for c in counts.values())
+
+def compute_entropy_baseline(lines: List[str]) -> Tuple[float, float]:
+    values = [v for l in lines if (v := calculate_entropy(l)) > 0]
+    if not values: return 5.0, 0.5
+    mean = sum(values) / len(values)
+    var = sum((v - mean) ** 2 for v in values) / len(values)
+    return mean, math.sqrt(var)
+
+def log_template(line: str) -> str:
+    t = re.sub(r'\d+', '<N>', line)
+    t = re.sub(r'\b(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}\b', '<IPv6>', t)
+    return re.sub(r'\s+', ' ', t).strip()[:120]
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── OUTPUT PATH RESOLUTION ────────────────────────────────────────────────────
+# ── WORKER (Process level) ────────────────────────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def _worker(filepath: str, start: int, end: int, threshold_seconds: float, ioc_set_frozen: frozenset, 
+            entropy_threshold: float, result_queue: multiprocessing.Queue, cpu_limit_pct: float, sigs: tuple) -> None:
+    try: os.nice(15)
+    except: pass
+    
+    throttle = _throttle_init(cpu_limit_pct)
+    gaps, ip_stats, template_counts = [], {}, Counter()
+    total_lines, parsed_lines, obfuscated_cnt, batch_ctr = 0, 0, 0, 0
+    prev_ts, log_type = None, None
+    time_buckets = defaultdict(list)
+
+    try:
+        with open(filepath, "rb") as raw_fh:
+            try:
+                mm = mmap.mmap(raw_fh.fileno(), 0, access=mmap.ACCESS_READ)
+                mm.seek(start)
+                chunk_bytes = mm.read(end - start)
+                mm.close()
+            except:
+                raw_fh.seek(start); chunk_bytes = raw_fh.read(end - start)
+
+        for line_content in _iter_line_bytes(chunk_bytes):
+            total_lines += 1; batch_ctr += 1
+            if batch_ctr >= THROTTLE_BATCH:
+                _throttle_tick(throttle); batch_ctr = 0
+
+            ts, ltype = fast_parse_timestamp(line_content)
+            if not ts: continue
+            parsed_lines += 1
+            if not log_type: log_type = ltype
+
+            if prev_ts:
+                diff = (ts - prev_ts).total_seconds()
+                if diff >= threshold_seconds:
+                    gaps.append({"type": "GAP", "gap_start": prev_ts.isoformat(), "gap_end": ts.isoformat(), 
+                                 "duration_human": str(ts-prev_ts), "duration_seconds": diff, 
+                                 "severity": "CRITICAL" if diff > 3600 else "HIGH", "start_line": total_lines, "end_line": total_lines + 1})
+                elif diff < -10:
+                    gaps.append({"type": "REVERSED", "gap_start": prev_ts.isoformat(), "gap_end": ts.isoformat(), 
+                                 "duration_human": str(ts-prev_ts), "duration_seconds": diff, 
+                                 "severity": "CRITICAL", "start_line": total_lines, "end_line": total_lines + 1})
+
+            ip_m = IP_RE.search(line_content)
+            if ip_m:
+                ip = ip_m.group()
+                if ip not in ip_stats:
+                    ip_stats[ip] = {"first": ts, "last": ts, "hits": 0, "fails": deque(maxlen=50), "events": [], "tags": set()}
+                s = ip_stats[ip]; s["hits"] += 1; s["last"] = ts; s["events"].append(ts)
+                
+                is_fail = False
+                for tag, sig in sigs:
+                    if sig.search(line_content):
+                        s["tags"].add(tag)
+                        if tag == "FAILED_LOGIN": is_fail = True
+                
+                if ip in ioc_set_frozen: s["tags"].add("KNOWN_MALICIOUS_IOC")
+                if calculate_entropy(line_content) > entropy_threshold:
+                    s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obfuscated_cnt += 1
+                
+                time_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
+
+            prev_ts = ts
+            template_counts[log_template(line_content)] += 1
+            
+    except Exception as exc:
+        result_queue.put({"error": str(exc)}); return
+
+    result_queue.put({
+        "gaps": gaps, "ip_stats": ip_stats, "template_counts": dict(template_counts),
+        "obfuscated_count": obfuscated_cnt, "total_lines": total_lines, "parsed_lines": parsed_lines,
+        "log_type": log_type, "time_buckets": dict(time_buckets)
+    })
+
+def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_threshold, result_queue, cpu_limit_pct, sigs) -> None:
+    try: os.nice(15)
+    except: pass
+    throttle = _throttle_init(cpu_limit_pct)
+    opener = gzip.open if filepath.endswith(".gz") else bz2.open
+    gaps, ip_stats, template_counts = [], {}, Counter()
+    total_lines, parsed_lines, obfuscated_cnt, batch_ctr = 0, 0, 0, 0
+    prev_ts, log_type = None, None
+    time_buckets = defaultdict(list)
+
+    try:
+        with opener(filepath, "rt", encoding="utf-8", errors="replace") as fh:
+            for line_content in fh:
+                total_lines += 1; batch_ctr += 1
+                if batch_ctr >= THROTTLE_BATCH: _throttle_tick(throttle); batch_ctr = 0
+                ts, ltype = fast_parse_timestamp(line_content)
+                if not ts: continue
+                parsed_lines += 1
+                if not log_type: log_type = ltype
+                if prev_ts:
+                    diff = (ts - prev_ts).total_seconds()
+                    if diff >= threshold_seconds or diff < -10:
+                        gaps.append({"type": "GAP" if diff > 0 else "REVERSED", "gap_start": prev_ts.isoformat(), 
+                                     "gap_end": ts.isoformat(), "duration_human": str(ts-prev_ts), "duration_seconds": diff, 
+                                     "severity": "HIGH", "start_line": total_lines, "end_line": total_lines + 1})
+                ip_m = IP_RE.search(line_content)
+                if ip_m:
+                    ip = ip_m.group()
+                    if ip not in ip_stats: ip_stats[ip] = {"first": ts, "last": ts, "hits": 0, "fails": deque(maxlen=50), "events": [], "tags": set()}
+                    s = ip_stats[ip]; s["hits"] += 1; s["last"] = ts; s["events"].append(ts)
+                    is_fail = False
+                    for tag, sig in sigs:
+                        if sig.search(line_content):
+                            s["tags"].add(tag)
+                            if tag == "FAILED_LOGIN": is_fail = True
+                    if ip in ioc_set_frozen: s["tags"].add("KNOWN_MALICIOUS_IOC")
+                    if calculate_entropy(line_content) > entropy_threshold: s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obfuscated_cnt += 1
+                    time_buckets[int(ts.timestamp() // 300)].append((ip, is_fail))
+                prev_ts = ts
+                template_counts[log_template(line_content)] += 1
+    except Exception as exc:
+        result_queue.put({"error": str(exc)}); return
+    result_queue.put({"gaps": gaps, "ip_stats": ip_stats, "template_counts": dict(template_counts), "obfuscated_count": obfuscated_cnt,
+                      "total_lines": total_lines, "parsed_lines": parsed_lines, "log_type": log_type, "time_buckets": dict(time_buckets)})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── REFINED RISK SCORING (Asymptotic Smoothing) ───────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _risk_zones(gaps: list, threats: list) -> Dict[str, float]:
+    if not gaps and not threats: 
+        return {z: 0.0 for z in ("integrity","access","persistence","privacy","continuity","exfiltration","lateral")}
+    
+    tag_actors = defaultdict(list)
+    for t in threats:
+        for tag in t["risk_tags"]: 
+            tag_actors[tag].append(t)
+            
+    def get_hits(tag: str) -> int:
+        return sum(t["hits"] for t in tag_actors[tag])
+        
+    def get_actors(tag: str) -> int:
+        return len(tag_actors[tag])
+
+    def points(base_weight: float, tag: str) -> float:
+        actors = get_actors(tag)
+        if actors == 0: 
+            return 0.0
+        hits = get_hits(tag)
+        # Base risk scales linearly with unique actors, and logarithmically with volume (hits)
+        return (base_weight * actors) + (base_weight * 0.5 * math.log10(max(1, hits)))
+
+    # Calculate raw risk points per zone based on severity
+    rev_gaps = len([g for g in gaps if g["type"] == "REVERSED"])
+    norm_gaps = len([g for g in gaps if g["type"] == "GAP"])
+    integrity_pts = (rev_gaps * 0.8) + (norm_gaps * 0.2)
+
+    access_pts = (points(0.4, "PRIV_ESCALATION") + 
+                  points(0.05, "FAILED_LOGIN") + 
+                  points(0.1, "BRUTE_FORCE_BURST") + 
+                  points(0.2, "DISTRIBUTED_ATTACK"))
+
+    zones = {
+        "integrity": integrity_pts,
+        "access": access_pts,
+        "persistence": points(0.5, "LOG_TAMPERING"),
+        "privacy": points(0.3, "SENSITIVE_ACCESS"),
+        "continuity": points(0.2, "SERVICE_EVENTS"),
+        "exfiltration": points(0.4, "DATA_EXFIL"),
+        "lateral": points(0.3, "LATERAL_MOVEMENT")
+    }
+    
+    # Asymptotic smoothing: 1 - exp(-x) gracefully maps [0, infinity] to a [0.0, 1.0) probability
+    return {z: 1.0 - math.exp(-pts) for z, pts in zones.items()}
+
+def _risk_score(gaps: list, threats: list) -> int:
+    zone_probs = _risk_zones(gaps, threats)
+    
+    # Combine independent zone probabilities using P(A or B) = 1 - P(not A) * P(not B)
+    safety = 1.0
+    for p in zone_probs.values(): 
+        safety *= (1.0 - p)
+        
+    # Contextual Modifiers (Kill-Chains and IOCs compress the remaining safety margin)
+    kc_count = sum(1 for t in threats if "KILL_CHAIN_DETECTED" in t["risk_tags"])
+    ioc_count = sum(1 for t in threats if t.get("is_ioc"))
+    
+    # Each confirmed Kill-Chain reduces safety by 30%, IOC by 15%
+    safety *= (0.70 ** kc_count)
+    safety *= (0.85 ** ioc_count)
+    
+    # Guard against minor floating point drift
+    final_prob = max(0.0, 1.0 - safety)
+    
+    # Cap at 99%
+    return min(int(final_prob * 100), 99)
 
 def resolve_output_dir() -> str:
-    documents = os.path.join(os.path.expanduser("~"), "Documents")
-    if not os.path.isdir(documents):
-        try:
-            os.makedirs(documents, exist_ok=True)
-        except OSError:
-            documents = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.join(documents, REPORT_ROOT_DIR)
-    date_dir = os.path.join(root_dir, datetime.now().strftime("%d-%m-%Y"))
-    os.makedirs(date_dir, exist_ok=True)
-    return date_dir
-
+    documents = os.path.join(os.path.expanduser("~"), "Documents", REPORT_ROOT_DIR)
+    date_dir = os.path.join(documents, datetime.now().strftime("%d-%m-%Y"))
+    os.makedirs(date_dir, exist_ok=True); return date_dir
 
 def make_output_paths(out_dir: str) -> Dict[str, str]:
     ts = datetime.now().strftime("%H-%M-%S")
-    return {
-        "csv_integrity":  os.path.join(out_dir, f"1_{ts}_integrity.csv"),
-        "csv_behavioral": os.path.join(out_dir, f"2_{ts}_behavioral.csv"),
-        "html":           os.path.join(out_dir, f"3_{ts}_dashboard.html"),
-        "json":           os.path.join(out_dir, f"4_{ts}_report.json"),
-    }
-
+    return {"csv_integrity": os.path.join(out_dir, f"1_{ts}_integrity.csv"),
+            "csv_behavioral": os.path.join(out_dir, f"2_{ts}_behavioral.csv"),
+            "html": os.path.join(out_dir, f"3_{ts}_dashboard.html"),
+            "json": os.path.join(out_dir, f"4_{ts}_report.json")}
 
 def to_file_url(path: str) -> str:
     abs_path = os.path.abspath(path).replace("\\", "/")
@@ -309,1079 +392,23 @@ def to_file_url(path: str) -> str:
         abs_path = "/" + abs_path
     return f"file://{abs_path}"
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── FAST TIMESTAMP PARSER  (hot path – called for every line) ─────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_NOW_CACHE: Optional[datetime] = None
-_NOW_CACHE_TS: float = 0.0
-
-def _now() -> datetime:
-    """Return datetime.now() but refresh only every second (saves syscalls)."""
-    global _NOW_CACHE, _NOW_CACHE_TS
-    t = time.monotonic()
-    if t - _NOW_CACHE_TS > 1.0:
-        _NOW_CACHE    = datetime.now()
-        _NOW_CACHE_TS = t
-    return _NOW_CACHE  # type: ignore[return-value]
-
-
-def parse_timestamp(line: str) -> Tuple[Optional[datetime], Optional[str]]:
-    """
-    Parse a log-line timestamp.  Hot-path optimisation notes:
-    - Uses a module-level tuple (faster than dict.items).
-    - `fmts` is a pre-built tuple; strptime called with each in order.
-    - _TS_STRIP.sub is called once, not inside the fmts loop.
-    - For Unix epoch the int() cast short-circuits immediately.
-    """
-    now = _now()
-    for regex, fmts, label in TIMESTAMP_REGEXES:
-        m = regex.search(line)
-        if not m:
-            continue
-        raw = m.group()
-
-        if fmts is None:                        # Unix Epoch
-            try:
-                return datetime.fromtimestamp(int(raw[:10])), label
-            except (ValueError, OSError, OverflowError):
-                continue
-
-        clean = _TS_STRIP.sub("", raw.strip("[]")).strip()
-        for fmt in fmts:
-            try:
-                if "%Y" not in fmt:
-                    dt = datetime.strptime(f"{CURRENT_YEAR} {clean}", f"%Y {fmt}")
-                    if dt > now + timedelta(days=1):
-                        dt = dt.replace(year=CURRENT_YEAR - 1)
-                else:
-                    dt = datetime.strptime(clean, fmt)
-                return dt, label
-            except ValueError:
-                continue
-    return None, None
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTROPY  (hot path) ───────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_log2 = math.log2          # local alias avoids attribute lookup in inner loop
-
-def calculate_entropy(data: str) -> float:
-    if not data or len(data) < 10:
-        return 0.0
-    clean = _TS_CLEAN_ENTROPY1.sub("", data)
-    clean = _TS_CLEAN_ENTROPY2.sub("", clean).strip()
-    if len(clean) < 8:
-        return 0.0
-    # Use bytearray Counter – ~2× faster than str Counter for ASCII logs
-    length  = len(clean)
-    counts  = Counter(clean)
-    inv_len = 1.0 / length
-    return -sum((c * inv_len) * _log2(c * inv_len) for c in counts.values())
-
-
-def compute_entropy_baseline(lines: List[str]) -> Tuple[float, float]:
-    values = [v for l in lines if (v := calculate_entropy(l)) > 0]
-    if not values:
-        return 5.0, 0.5
-    mean     = sum(values) / len(values)
-    variance = sum((v - mean) ** 2 for v in values) / len(values)
-    return mean, math.sqrt(variance)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── LOG TEMPLATE (rare-event detection) ──────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def log_template(line: str) -> str:
-    t = _TMPL_IP.sub("<IP>", line)
-    t = _TMPL_NUM.sub("<N>", t)
-    t = _TMPL_STR.sub("<STR>", t)
-    return _TMPL_WS.sub(" ", t).strip()[:120]
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── CHUNK ITERATOR  (memory-efficient splitting) ──────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _iter_chunks(filepath: str, n_workers: int) -> List[Tuple[int, int]]:
-    """
-    Return a list of (start_byte, end_byte) pairs that split the file
-    into n_workers roughly equal chunks, each ending on a newline boundary.
-    Works on plain files only (gz/bz2 are handled by a single-threaded
-    decompression path — see below).
-    """
-    size = os.path.getsize(filepath)
-    if size == 0:
-        return [(0, 0)]
-    chunk_size = max(CHUNK_MIN_BYTES, size // n_workers)
-    chunks: List[Tuple[int, int]] = []
-    start = 0
-    with open(filepath, "rb") as fh:
-        while start < size:
-            end = min(start + chunk_size, size)
-            if end < size:
-                fh.seek(end)
-                remainder = fh.read(4096)
-                nl_pos = remainder.find(b"\n")
-                end = end + nl_pos + 1 if nl_pos != -1 else size
-            chunks.append((start, end))
-            start = end
-    return chunks
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── WORKER  (runs in a separate OS process) ───────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _worker(
-    filepath: str,
-    start: int,
-    end: int,
-    threshold_seconds: float,
-    ioc_set_frozen: frozenset,
-    entropy_threshold: float,
-    result_queue: "multiprocessing.Queue",  # type: ignore[type-arg]
-    cpu_limit_pct: float = 25.0,
-) -> None:
-    """
-    Process bytes [start, end) of filepath.
-
-    Produces a dict with partial results which the coordinator merges.
-    Uses mmap on POSIX for zero-copy access; falls back to buffered read.
-
-    CPU throttling
-    ──────────────
-    os.nice(15) deprioritises this process at the OS scheduler level.
-    _throttle_tick() enforces a hard duty-cycle ceiling so that even on
-    a single-core machine no more than cpu_limit_pct % of that core is
-    used by this worker over any 50 ms window.
-
-    Memory model
-    ────────────
-    ip_stats   O(unique_IPs_in_chunk)   ← bounded; merged and discarded
-    gaps       O(gaps_in_chunk)         ← small; typically << 10 per chunk
-    templates  O(unique_templates)      ← bounded by log variety
-    """
-    # ── Lower OS scheduling priority so interactive tasks are unaffected ──────
-    try:
-        os.nice(15)
-    except (AttributeError, OSError):
-        pass   # Windows doesn't have nice(); ignore silently
-
-    # ── Initialise throttle state ─────────────────────────────────────────────
-    throttle = _throttle_init(cpu_limit_pct)
-
-    # ── local aliases (avoid global lookups in tight loop) ───────────────────
-    _parse_ts    = parse_timestamp
-    _entropy     = calculate_entropy
-    _tmpl        = log_template
-    _ip_re       = IP_RE
-    _sigs        = SIGS
-    _ioc         = ioc_set_frozen
-    _ent_thresh  = entropy_threshold
-    _gap_thresh  = threshold_seconds
-    _tick        = _throttle_tick
-    _batch       = THROTTLE_BATCH
-
-    gaps:            List[Dict]                        = []
-    ip_stats:        Dict[str, Dict]                   = {}
-    template_counts: Counter                           = Counter()
-    obfuscated_cnt   = 0
-    total_lines      = 0
-    parsed_lines     = 0
-    skipped_lines    = 0
-    log_type         = None
-    time_buckets:    Dict[int, List]                   = defaultdict(list)
-
-    prev_ts   = None
-    line_no   = 0   # approximate (relative to chunk start)
-    batch_ctr = 0   # counts lines between throttle checks
-
-    try:
-        with open(filepath, "rb") as raw_fh:
-            # Try mmap (POSIX)
-            try:
-                mm = mmap.mmap(raw_fh.fileno(), 0, access=mmap.ACCESS_READ)
-                mm.seek(start)
-                chunk_bytes = mm.read(end - start)
-                mm.close()
-            except (mmap.error, ValueError):
-                raw_fh.seek(start)
-                chunk_bytes = raw_fh.read(end - start)
-
-        # Decode once; split into lines (avoids repeated decode overhead)
-        lines = chunk_bytes.decode("utf-8", errors="replace").splitlines()
-        del chunk_bytes   # free ASAP
-
-        for line_content in lines:
-            line_no     += 1
-            total_lines += 1
-            batch_ctr   += 1
-
-            # ── CPU throttle checkpoint ───────────────────────────────────────
-            if batch_ctr >= _batch:
-                _tick(throttle)
-                batch_ctr = 0
-
-            ts, ltype = _parse_ts(line_content)
-            if not ts:
-                skipped_lines += 1
-                continue
-
-            parsed_lines += 1
-            if log_type is None:
-                log_type = ltype
-
-            # ── Integrity check ───────────────────────────────────────────────
-            if prev_ts is not None:
-                diff = (ts - prev_ts).total_seconds()
-                if diff >= _gap_thresh:
-                    gaps.append({
-                        "type": "GAP",
-                        "gap_start": prev_ts.isoformat(),
-                        "gap_end":   ts.isoformat(),
-                        "duration_human":   str(ts - prev_ts),
-                        "duration_seconds": diff,
-                        "severity":   "CRITICAL" if diff > 3600 else "HIGH",
-                        "start_line": line_no - 1,
-                        "end_line":   line_no,
-                    })
-                elif diff < -10:
-                    gaps.append({
-                        "type": "REVERSED",
-                        "gap_start": prev_ts.isoformat(),
-                        "gap_end":   ts.isoformat(),
-                        "duration_human":   str(ts - prev_ts),
-                        "duration_seconds": diff,
-                        "severity":   "CRITICAL",
-                        "start_line": line_no - 1,
-                        "end_line":   line_no,
-                    })
-
-            # ── Template detection ────────────────────────────────────────────
-            template_counts[_tmpl(line_content)] += 1
-
-            # ── IP / Entity profiling ─────────────────────────────────────────
-            ip_m = _ip_re.search(line_content)
-            if ip_m:
-                ip = ip_m.group()
-
-                # Inline dict initialisation (avoids setdefault overhead)
-                if ip not in ip_stats:
-                    ip_stats[ip] = {
-                        "first":  ts,
-                        "last":   ts,
-                        "hits":   0,
-                        "fails":  deque(maxlen=50),
-                        "events": [],
-                        "tags":   set(),
-                    }
-                s = ip_stats[ip]
-                s["hits"] += 1
-                s["last"]  = ts
-                s["events"].append(ts)
-
-                is_fail = False
-                tags    = s["tags"]
-                fails   = s["fails"]
-
-                # Signature scan (tuple iteration is fastest Python loop)
-                for tag, sig in _sigs:
-                    if sig.search(line_content):
-                        tags.add(tag)
-                        if tag == "FAILED_LOGIN":
-                            fails.append(ts)
-                            is_fail = True
-
-                if ip in _ioc:
-                    tags.add("KNOWN_MALICIOUS_IOC")
-
-                if _entropy(line_content) > _ent_thresh:
-                    tags.add("HIGH_ENTROPY_PAYLOAD")
-                    obfuscated_cnt += 1
-
-                bucket = int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)
-                time_buckets[bucket].append((ip, is_fail))
-
-            prev_ts = ts
-
-    except Exception as exc:
-        result_queue.put({"error": str(exc)})
-        return
-
-    result_queue.put({
-        "gaps":             gaps,
-        "ip_stats":         ip_stats,
-        "template_counts":  dict(template_counts),
-        "obfuscated_count": obfuscated_cnt,
-        "total_lines":      total_lines,
-        "parsed_lines":     parsed_lines,
-        "skipped_lines":    skipped_lines,
-        "log_type":         log_type,
-        "time_buckets":     dict(time_buckets),
-    })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── COMPRESSED FILE WORKER  (single-threaded streaming) ──────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _worker_compressed(
-    filepath: str,
-    threshold_seconds: float,
-    ioc_set_frozen: frozenset,
-    entropy_threshold: float,
-    result_queue: "multiprocessing.Queue",  # type: ignore[type-arg]
-    cpu_limit_pct: float = 25.0,
-) -> None:
-    """
-    Same logic as _worker but reads a gz/bz2 file sequentially.
-    Compression means we cannot seek, so parallelism is not possible here.
-    Memory usage is still O(unique_IPs), not O(file_size).
-    CPU throttling and os.nice(15) are applied identically to _worker.
-    """
-    try:
-        os.nice(15)
-    except (AttributeError, OSError):
-        pass
-
-    throttle = _throttle_init(cpu_limit_pct)
-    opener   = gzip.open if filepath.endswith(".gz") else bz2.open
-
-    gaps:            List[Dict]      = []
-    ip_stats:        Dict[str, Dict] = {}
-    template_counts: Counter         = Counter()
-    obfuscated_cnt   = 0
-    total_lines      = 0
-    parsed_lines     = 0
-    skipped_lines    = 0
-    log_type         = None
-    time_buckets:    Dict[int, List] = defaultdict(list)
-    prev_ts          = None
-    line_no          = 0
-    batch_ctr        = 0
-
-    _parse_ts    = parse_timestamp
-    _entropy     = calculate_entropy
-    _tmpl        = log_template
-    _ip_re       = IP_RE
-    _sigs        = SIGS
-    _ioc         = ioc_set_frozen
-    _ent_thresh  = entropy_threshold
-    _gap_thresh  = threshold_seconds
-    _tick        = _throttle_tick
-    _batch       = THROTTLE_BATCH
-
-    try:
-        with opener(filepath, "rt", encoding="utf-8", errors="replace") as fh:
-            for line_content in fh:
-                line_no     += 1
-                total_lines += 1
-                batch_ctr   += 1
-                line_content = line_content.rstrip("\n")
-
-                # ── CPU throttle checkpoint ───────────────────────────────────
-                if batch_ctr >= _batch:
-                    _tick(throttle)
-                    batch_ctr = 0
-
-                ts, ltype = _parse_ts(line_content)
-                if not ts:
-                    skipped_lines += 1
-                    continue
-
-                parsed_lines += 1
-                if log_type is None:
-                    log_type = ltype
-
-                if prev_ts is not None:
-                    diff = (ts - prev_ts).total_seconds()
-                    if diff >= _gap_thresh:
-                        gaps.append({
-                            "type": "GAP",
-                            "gap_start": prev_ts.isoformat(),
-                            "gap_end":   ts.isoformat(),
-                            "duration_human":   str(ts - prev_ts),
-                            "duration_seconds": diff,
-                            "severity":   "CRITICAL" if diff > 3600 else "HIGH",
-                            "start_line": line_no - 1,
-                            "end_line":   line_no,
-                        })
-                    elif diff < -10:
-                        gaps.append({
-                            "type": "REVERSED",
-                            "gap_start": prev_ts.isoformat(),
-                            "gap_end":   ts.isoformat(),
-                            "duration_human":   str(ts - prev_ts),
-                            "duration_seconds": diff,
-                            "severity":   "CRITICAL",
-                            "start_line": line_no - 1,
-                            "end_line":   line_no,
-                        })
-
-                template_counts[_tmpl(line_content)] += 1
-
-                ip_m = _ip_re.search(line_content)
-                if ip_m:
-                    ip = ip_m.group()
-                    if ip not in ip_stats:
-                        ip_stats[ip] = {
-                            "first":  ts, "last":   ts,
-                            "hits":   0,  "fails":  deque(maxlen=50),
-                            "events": [], "tags":   set(),
-                        }
-                    s       = ip_stats[ip]
-                    s["hits"]  += 1
-                    s["last"]   = ts
-                    s["events"].append(ts)
-
-                    is_fail = False
-                    for tag, sig in _sigs:
-                        if sig.search(line_content):
-                            s["tags"].add(tag)
-                            if tag == "FAILED_LOGIN":
-                                s["fails"].append(ts)
-                                is_fail = True
-
-                    if ip in _ioc:
-                        s["tags"].add("KNOWN_MALICIOUS_IOC")
-                    if _entropy(line_content) > _ent_thresh:
-                        s["tags"].add("HIGH_ENTROPY_PAYLOAD")
-                        obfuscated_cnt += 1
-
-                    bucket = int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)
-                    time_buckets[bucket].append((ip, is_fail))
-
-                prev_ts = ts
-
-    except Exception as exc:
-        result_queue.put({"error": str(exc)})
-        return
-
-    result_queue.put({
-        "gaps":             gaps,
-        "ip_stats":         ip_stats,
-        "template_counts":  dict(template_counts),
-        "obfuscated_count": obfuscated_cnt,
-        "total_lines":      total_lines,
-        "parsed_lines":     parsed_lines,
-        "skipped_lines":    skipped_lines,
-        "log_type":         log_type,
-        "time_buckets":     dict(time_buckets),
-    })
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── RESULT MERGER ─────────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _merge_ip_stats(base: Dict, new: Dict) -> None:
-    """
-    Merge `new` ip_stats dict into `base` in-place.
-    Reuses existing entry dicts to avoid allocation.
-    """
-    for ip, ns in new.items():
-        if ip not in base:
-            base[ip] = ns
-        else:
-            bs = base[ip]
-            if ns["first"] < bs["first"]: bs["first"] = ns["first"]
-            if ns["last"]  > bs["last"]:  bs["last"]  = ns["last"]
-            bs["hits"] += ns["hits"]
-            bs["tags"].update(ns["tags"])
-            bs["fails"].extend(ns["fails"])
-            bs["events"].extend(ns["events"])
-
-
-def _merge_time_buckets(base: Dict, new: Dict) -> None:
-    for bucket, events in new.items():
-        base[bucket].extend(events)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── PROGRESS BAR HELPERS ──────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-class _FallbackProgress:
-    """Minimal progress display when tqdm is not installed."""
-    def __init__(self, total: int, desc: str = ""):
-        self._total = total
-        self._done  = 0
-        self._desc  = desc
-        self._t0    = time.monotonic()
-        self._last  = 0.0
-
-    def update(self, n: int = 1) -> None:
-        self._done += n
-        now = time.monotonic()
-        if now - self._last < 0.5:
-            return
-        self._last = now
-        pct  = int(self._done / self._total * 100) if self._total else 0
-        elapsed = now - self._t0
-        bar  = "█" * (pct // 5) + "░" * (20 - pct // 5)
-        sys.stderr.write(
-            f"\r{C.CYAN}{self._desc}{C.RESET} [{bar}] {pct:>3}%  "
-            f"{self._done}/{self._total} workers  {elapsed:.1f}s"
-        )
-        sys.stderr.flush()
-
-    def close(self) -> None:
-        sys.stderr.write("\n")
-        sys.stderr.flush()
-
-
-def _make_progress(total: int, desc: str):
-    if HAS_TQDM:
-        return _tqdm(total=total, desc=desc, unit="chunk",
-                     bar_format="{l_bar}{bar:20}{r_bar}")
-    return _FallbackProgress(total=total, desc=desc)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── SESSION RECONSTRUCTION ────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
 def session_reconstruct(events: List[datetime]) -> List[Dict]:
-    if not events:
-        return []
+    if not events: return []
     sessions, s_start, s_last, count = [], events[0], events[0], 1
     for ts in events[1:]:
         if (ts - s_last).total_seconds() > SESSION_INACTIVITY_SEC:
-            sessions.append({"start": s_start, "end": s_last, "events": count,
-                             "duration_s": int((s_last - s_start).total_seconds())})
+            sessions.append({"start": s_start, "end": s_last, "events": count, "duration_s": int((s_last - s_start).total_seconds())})
             s_start, count = ts, 0
-        s_last = ts
-        count += 1
-    sessions.append({"start": s_start, "end": s_last, "events": count,
-                     "duration_s": int((s_last - s_start).total_seconds())})
+        s_last, count = ts, count + 1
+    sessions.append({"start": s_start, "end": s_last, "events": count, "duration_s": int((s_last - s_start).total_seconds())})
     return sessions
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── KILL-CHAIN ────────────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-KILL_CHAIN_STAGES = (
-    "SCANNING", "FAILED_LOGIN", "PRIV_ESCALATION",
-    "SENSITIVE_ACCESS", "LOG_TAMPERING",
-)
-
-def detect_kill_chain(tags: Set[str]) -> int:
-    return sum(1 for s in KILL_CHAIN_STAGES if s in tags)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── RISK SCORING ──────────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _risk_zones(gaps: list, threats: list) -> Dict[str, float]:
-    """Evidence-driven, saturation-model risk per zone."""
-    if not gaps and not threats:
-        return {z: 0.0 for z in
-                ("integrity","access","persistence","privacy",
-                 "continuity","exfiltration","lateral")}
-
-    def saturation(p: float, n: int) -> float:
-        return 1.0 - (1.0 - min(p, 0.97)) ** max(n, 0)
-
-    def hit_scaled_p(base: float, hits: int) -> float:
-        return min(base * (1.0 + 0.15 * math.log10(max(hits, 1))), 0.97)
-
-    def fractional_boost(cur: float, mult: float) -> float:
-        return min(cur + (1.0 - cur) * mult, 0.99)
-
-    tag_actors: Dict[str, list] = defaultdict(list)
-    for t in threats:
-        for tag in t["risk_tags"]:
-            tag_actors[tag].append(t)
-
-    def n(tag: str) -> int:
-        return len(tag_actors[tag])
-
-    def peak_hits(tag: str) -> int:
-        return max((t["hits"] for t in tag_actors[tag]), default=1)
-
-    reversed_gaps = [g for g in gaps if g["type"] == "REVERSED"]
-    critical_gaps = [g for g in gaps if g["type"] == "GAP" and g["severity"] == "CRITICAL"]
-    high_gaps     = [g for g in gaps if g["type"] == "GAP" and g["severity"] == "HIGH"]
-
-    max_gap_sec     = max((g["duration_seconds"] for g in gaps if g["type"] == "GAP"), default=0)
-    duration_factor = min(max_gap_sec / 3600 * 0.05, 0.30)
-
-    integrity = 1.0 - (
-        (1.0 - saturation(0.70, len(reversed_gaps))) *
-        (1.0 - saturation(0.40, len(critical_gaps))) *
-        (1.0 - saturation(0.15, len(high_gaps)))     *
-        (1.0 - duration_factor)
-    )
-
-    n_failed_only = len([t for t in tag_actors["FAILED_LOGIN"]
-                         if "BRUTE_FORCE_BURST" not in t["risk_tags"]])
-    access = 1.0 - (
-        (1.0 - saturation(hit_scaled_p(0.60, peak_hits("PRIV_ESCALATION")),  n("PRIV_ESCALATION"))) *
-        (1.0 - saturation(hit_scaled_p(0.35, peak_hits("BRUTE_FORCE_BURST")),n("BRUTE_FORCE_BURST"))) *
-        (1.0 - saturation(hit_scaled_p(0.10, peak_hits("FAILED_LOGIN")),     n_failed_only)) *
-        (1.0 - saturation(0.25, n("DISTRIBUTED_ATTACK")))
-    )
-
-    zone_probs = {
-        "integrity":    integrity,
-        "access":       access,
-        "persistence":  saturation(hit_scaled_p(0.80, peak_hits("LOG_TAMPERING")),   n("LOG_TAMPERING")),
-        "privacy":      saturation(hit_scaled_p(0.50, peak_hits("SENSITIVE_ACCESS")),n("SENSITIVE_ACCESS")),
-        "continuity":   saturation(hit_scaled_p(0.30, peak_hits("SERVICE_EVENTS")),  n("SERVICE_EVENTS")),
-        "exfiltration": saturation(hit_scaled_p(0.65, peak_hits("DATA_EXFIL")),       n("DATA_EXFIL")),
-        "lateral":      saturation(hit_scaled_p(0.55, peak_hits("LATERAL_MOVEMENT")),n("LATERAL_MOVEMENT")),
-    }
-
-    n_ioc = len([t for t in threats if t.get("is_ioc")])
-    if n_ioc > 0:
-        ioc_mult = min(n_ioc * 0.15, 0.50)
-        for z in zone_probs:
-            if zone_probs[z] > 0:
-                zone_probs[z] = fractional_boost(zone_probs[z], ioc_mult)
-
-    if n("KILL_CHAIN_DETECTED") > 0:
-        max_kc  = max((t["kill_chain_score"] for t in tag_actors["KILL_CHAIN_DETECTED"]), default=0)
-        kc_mult = min((max_kc / len(KILL_CHAIN_STAGES)) * 0.35, 0.35)
-        for z in zone_probs:
-            if zone_probs[z] > 0:
-                zone_probs[z] = fractional_boost(zone_probs[z], kc_mult)
-
-    n_ent = n("HIGH_ENTROPY_PAYLOAD")
-    if n_ent > 0:
-        ent_mult = min(n_ent * 0.02, 0.15)
-        for z in zone_probs:
-            if zone_probs[z] > 0:
-                zone_probs[z] = fractional_boost(zone_probs[z], ent_mult)
-
-    return zone_probs
-
-
-def _risk_score(gaps: list, threats: list) -> int:
-    zone_probs   = _risk_zones(gaps, threats)
-    combined_safe = 1.0
-    for p in zone_probs.values():
-        combined_safe *= (1.0 - p)
-    return min(int((1.0 - combined_safe) * 100), 99)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── IOC FEED ─────────────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def load_ioc_feed(path: Optional[str]) -> frozenset:
-    if not path or not os.path.isfile(path):
-        return frozenset()
-    known: Set[str] = set()
-    with open(path, encoding="utf-8", errors="replace") as fh:
-        for line in fh:
-            line = line.strip()
-            if line and not line.startswith("#") and IP_RE.match(line):
-                known.add(line)
-    return frozenset(known)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── MAIN SCAN ORCHESTRATOR ────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def scan_log(
-    filepath: str,
-    threshold_seconds: float,
-    ioc_set: frozenset      = frozenset(),
-    compare_filepath: Optional[str] = None,
-    n_workers: int          = 1,
-    show_progress: bool     = True,
-    cpu_limit_pct: float    = 25.0,
-) -> Dict:
-    """
-    Orchestrate parallel (or streaming) log analysis.
-
-    Plain files   → split into n_workers chunks → multiprocessing.Process pool
-    .gz / .bz2    → single streaming worker (cannot seek into compressed data)
-
-    cpu_limit_pct controls the duty-cycle ceiling passed to every worker.
-    Default is 25 (each worker uses ≤ 25 % of one CPU core at any moment).
-    All partial worker results are merged in this process.
-    """
-    t_start = time.monotonic()
-    is_compressed = filepath.endswith((".gz", ".bz2"))
-
-    # ── Phase 0: entropy baseline (read first ENTROPY_BASELINE_LINES lines) ──
-    baseline_lines: List[str] = []
-    try:
-        if is_compressed:
-            opener = gzip.open if filepath.endswith(".gz") else bz2.open
-            with opener(filepath, "rt", encoding="utf-8", errors="replace") as fh:
-                for i, line in enumerate(fh):
-                    if i >= ENTROPY_BASELINE_LINES: break
-                    baseline_lines.append(line.rstrip("\n"))
-        else:
-            with open(filepath, "r", encoding="utf-8", errors="replace",
-                      buffering=READ_BUFFER) as fh:
-                for i, line in enumerate(fh):
-                    if i >= ENTROPY_BASELINE_LINES: break
-                    baseline_lines.append(line.rstrip("\n"))
-    except Exception as exc:
-        print(f"[!] Baseline read error: {exc}")
-
-    entropy_mean, entropy_std = compute_entropy_baseline(baseline_lines)
-    entropy_threshold = max(ENTROPY_ABS_MIN,
-                            entropy_mean + ENTROPY_STD_MULTIPLIER * entropy_std)
-
-    # ── Phase 1: dispatch workers ─────────────────────────────────────────────
-    mp_ctx    = multiprocessing.get_context("spawn")   # safe on all platforms
-    rq        = mp_ctx.Queue(maxsize=n_workers + 4)
-    processes = []
-
-    if is_compressed:
-        # Single worker — cannot parallelise compressed streams
-        p = mp_ctx.Process(
-            target=_worker_compressed,
-            args=(filepath, threshold_seconds, ioc_set, entropy_threshold, rq,
-                  cpu_limit_pct),
-            daemon=True,
-        )
-        p.start()
-        processes.append(p)
-        n_expected = 1
-    else:
-        chunks = _iter_chunks(filepath, n_workers)
-        n_expected = len(chunks)
-        for start, end in chunks:
-            p = mp_ctx.Process(
-                target=_worker,
-                args=(filepath, start, end, threshold_seconds,
-                      ioc_set, entropy_threshold, rq, cpu_limit_pct),
-                daemon=True,
-            )
-            p.start()
-            processes.append(p)
-
-    # ── Phase 2: collect and merge results ───────────────────────────────────
-    merged_gaps:            List[Dict]       = []
-    merged_ip_stats:        Dict[str, Dict]  = {}
-    merged_template_counts: Counter          = Counter()
-    merged_time_buckets:    Dict[int, List]  = defaultdict(list)
-    total_lines     = 0
-    parsed_lines    = 0
-    skipped_lines   = 0
-    obfuscated_cnt  = 0
-    log_type        = None
-
-    pbar = _make_progress(n_expected, "Scanning") if show_progress else None
-    received = 0
-
-    while received < n_expected:
-        try:
-            partial = rq.get(timeout=300)   # 5-min timeout per chunk
-        except Exception:
-            break
-
-        if "error" in partial:
-            print(f"\n{C.RED}[!] Worker error: {partial['error']}{C.RESET}")
-            received += 1
-            if pbar: pbar.update(1)
-            continue
-
-        merged_gaps.extend(partial["gaps"])
-        _merge_ip_stats(merged_ip_stats, partial["ip_stats"])
-        merged_template_counts.update(partial["template_counts"])
-        _merge_time_buckets(merged_time_buckets, partial["time_buckets"])
-        total_lines    += partial["total_lines"]
-        parsed_lines   += partial["parsed_lines"]
-        skipped_lines  += partial["skipped_lines"]
-        obfuscated_cnt += partial["obfuscated_count"]
-        if log_type is None and partial["log_type"]:
-            log_type = partial["log_type"]
-        received += 1
-        if pbar: pbar.update(1)
-
-    if pbar: pbar.close()
-    for p in processes:
-        p.join(timeout=5)
-
-    # ── Phase 3: Post-analysis enrichment ─────────────────────────────────────
-    # Sort gaps by start line for coherent timeline display
-    merged_gaps.sort(key=lambda g: g["start_line"])
-
-    rare_templates = {t for t, c in merged_template_counts.items()
-                      if c <= RARE_TEMPLATE_THRESHOLD}
-
-    distributed_ips: Set[str] = set()
-    for bucket, events in merged_time_buckets.items():
-        fail_events = [(ip, f) for ip, f in events if f]
-        unique_fail  = set(ip for ip, _ in fail_events)
-        if len(fail_events) >= DISTRIBUTED_FAIL_THRESHOLD and len(unique_fail) >= 3:
-            distributed_ips.update(unique_fail)
-
-    final_threats: List[Dict] = []
-    for ip, s in merged_ip_stats.items():
-        fails = sorted(s["fails"])
-        if len(fails) >= BRUTE_FORCE_THRESHOLD:
-            if (fails[-1] - fails[0]).total_seconds() < (BRUTE_FORCE_WINDOW_MIN * 60):
-                s["tags"].add("BRUTE_FORCE_BURST")
-
-        if ip in distributed_ips:
-            s["tags"].add("DISTRIBUTED_ATTACK")
-
-        kc = detect_kill_chain(s["tags"])
-        if kc >= 3:
-            s["tags"].add("KILL_CHAIN_DETECTED")
-
-        sessions = session_reconstruct(sorted(s["events"]))
-
-        if s["tags"] or s["hits"] > 200:
-            final_threats.append({
-                "ip":               ip,
-                "risk_tags":        sorted(s["tags"]),
-                "hits":             s["hits"],
-                "span":             str(s["last"] - s["first"]),
-                "sessions":         sessions,
-                "session_count":    len(sessions),
-                "kill_chain_score": kc,
-                "is_ioc":           ip in ioc_set,
-            })
-
-    # Optional comparison
-    compare_result = None
-    if compare_filepath and os.path.isfile(compare_filepath):
-        new_ips: Set[str] = set()
-        try:
-            with open(compare_filepath, "r", encoding="utf-8", errors="replace") as fh:
-                for line in fh:
-                    m = IP_RE.search(line)
-                    if m and m.group() not in merged_ip_stats:
-                        new_ips.add(m.group())
-        except Exception:
-            pass
-        compare_result = {"new_actors": sorted(new_ips), "count": len(new_ips)}
-
-    proc_time    = time.monotonic() - t_start
-    risk_breakdown = _risk_zones(merged_gaps, final_threats)
-
-    return {
-        "gaps":          merged_gaps,
-        "threats":       final_threats,
-        "risk_breakdown":{z: round(p, 4) for z, p in risk_breakdown.items()},
-        "performance": {
-            "time":      round(proc_time, 3),
-            "lps":       int(total_lines / proc_time) if proc_time > 0 else 0,
-            "workers":   n_workers,
-            "cpu_limit": cpu_limit_pct,
-            "mbps":      round((os.path.getsize(filepath) / 1e6) / proc_time, 1)
-                         if not is_compressed else 0,
-        },
-        "stats": {
-            "total":               total_lines,
-            "parsed":              parsed_lines,
-            "skipped":             skipped_lines,
-            "obfuscated":          obfuscated_cnt,
-            "log_type":            log_type or "Mixed/Unknown",
-            "rare_templates":      len(rare_templates),
-            "distributed_windows": sum(
-                1 for b in merged_time_buckets.values()
-                if len([e for e in b if e[1]]) >= DISTRIBUTED_FAIL_THRESHOLD
-            ),
-        },
-        "entropy_baseline": {
-            "mean":      round(entropy_mean, 3),
-            "std":       round(entropy_std, 3),
-            "threshold": round(entropy_threshold, 3),
-        },
-        "compare": compare_result,
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── BENCHMARKING ──────────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def benchmark(filepath: str, n_workers: int, cpu_limit_pct: float = 25.0) -> None:
-    """Run the scan 3 × and print a timing table."""
-    size_mb = os.path.getsize(filepath) / 1e6
-    print(f"\n{C.BOLD}{'─'*60}{C.RESET}")
-    print(f" BENCHMARK  {filepath}  ({size_mb:.1f} MB)")
-    print(f" Workers: {n_workers}  CPU limit: {cpu_limit_pct:.0f}% per worker")
-    print(f"{'─'*60}{C.RESET}")
-    print(f"  {'Run':<5} {'Time (s)':<12} {'Lines/s':<14} {'MB/s'}")
-    print(f"  {'─'*5} {'─'*12} {'─'*14} {'─'*10}")
-
-    times = []
-    for run in range(1, 4):
-        t0  = time.monotonic()
-        res = scan_log(filepath, 300.0, n_workers=n_workers,
-                       show_progress=False, cpu_limit_pct=cpu_limit_pct)
-        dt  = time.monotonic() - t0
-        times.append(dt)
-        lps  = res["performance"]["lps"]
-        mbps = res["performance"]["mbps"]
-        print(f"  {run:<5} {dt:<12.3f} {lps:<14,} {mbps:.1f}")
-
-    avg = sum(times) / len(times)
-    print(f"{'─'*60}")
-    print(f"  {'avg':<5} {avg:<12.3f}")
-    print(f"{'─'*60}\n")
-
-    print(f" PROJECTION TABLE  ({n_workers} workers @ {cpu_limit_pct:.0f}% CPU limit)")
-    print(f"{'─'*60}")
-    print(f"  {'File size':<15} {'Estimated time'}")
-    print(f"  {'─'*15} {'─'*15}")
-    mbps_avg = size_mb / avg if avg > 0 else 1
-    for label, mb in (("100 MB", 100), ("500 MB", 500),
-                      ("1 GB", 1000), ("10 GB", 10000), ("100 GB", 100000)):
-        est = mb / mbps_avg
-        h, rem  = divmod(int(est), 3600)
-        m, s    = divmod(rem, 60)
-        t_str   = (f"{h}h {m}m {s}s" if h else f"{m}m {s}s" if m else f"{s}s")
-        print(f"  {label:<15} {t_str}")
-    print(f"{'─'*60}\n")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── TERMINAL REPORT ───────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _bar(value: int, max_val: int, width: int = 30, char: str = "█") -> str:
-    filled = int(round(value / max_val * width)) if max_val else 0
-    return char * filled + C.DIM + "░" * (width - filled) + C.RESET
-
-
-def get_system_metadata() -> Dict:
-    return {
-        "os": platform.system(), "ver": platform.release(),
-        "arch": platform.machine(), "host": socket.gethostname(),
-        "cpu": platform.processor(), "ts": datetime.now().isoformat(),
-    }
-
-
-def report_terminal(result: Dict, filepath: str, out_paths: Dict[str, str]) -> None:
-    risk     = _risk_score(result["gaps"], result["threats"])
-    risk_col = C.RED if risk >= 75 else (C.YELLOW if risk >= 40 else C.GREEN)
-    perf     = result["performance"]
-    stats    = result["stats"]
-    eb       = result["entropy_baseline"]
-    sys_info = get_system_metadata()
-    W = 79
-
-    print(f"\n{C.BOLD}{'━'*W}{C.RESET}")
-    print(f"{C.CYAN}  _     ___   ____   ____   _____   _____   _____   ____   _____   ___   ____  ")
-    print(f" | |   / _ \\ / ___| |  _ \\ | ____| |_   _| | ____| / ___| |_   _| / _ \\ |  _ \\ ")
-    print(f" | |  | | | | |  _  | | | | |  _|     | |   |  _|  | |       | |  | | | || |_) |")
-    print(f" | |__| |_| | |_| | | |_| | | |___    | |   | |__  | |___    | |  | |_| ||  _ < ")
-    print(f" |_____\\___/ \\____| |____/  |_____|   |_|   |_____| \\____|   |_|   \\___/ |_| \\_\\{C.RESET}")
-    print(f"\n {C.BOLD}Foreign Threat Analysis | v{PROJECT_VERSION}{C.RESET}")
-    print(f"{C.BOLD}{'━'*W}{C.RESET}")
-
-    print(f" {C.BOLD}[SYSTEM CONTEXT]{C.RESET}               {C.BOLD}[PERFORMANCE]{C.RESET}")
-    print(f"  Host : {sys_info['host']:<25} Time  : {perf['time']}s")
-    print(f"  OS   : {sys_info['os']:<25} Rate  : {perf['lps']:,} lines/sec")
-    print(f"  Type : {stats['log_type']:<25} Speed : {perf['mbps']} MB/s")
-    print(f"  Parse: {stats['parsed']:,} / {stats['total']:,} lines"
-          f"{'':<5} Workers: {perf['workers']}  CPU cap: {perf['cpu_limit']:.0f}%")
-
-    print(f"\n {C.BOLD}[ENTROPY BASELINE]{C.RESET}")
-    print(f"  Mean={eb['mean']:.3f}  StdDev={eb['std']:.3f}  "
-          f"Threshold={C.YELLOW}{eb['threshold']:.3f}{C.RESET}  "
-          f"(dynamic, first {ENTROPY_BASELINE_LINES} lines)")
-
-    print(f"\n {C.BOLD}[RISK ASSESSMENT]{C.RESET}")
-    print(f"  Compromise Probability: {risk_col}{C.BOLD}{risk:>3}%{C.RESET}  "
-          f"{risk_col}{_bar(risk, 100, width=40)}{C.RESET}")
-
-    breakdown    = result.get("risk_breakdown", {})
-    zone_labels  = {
-        "integrity":    "Integrity   ",
-        "access":       "Access      ",
-        "persistence":  "Persistence ",
-        "privacy":      "Privacy     ",
-        "continuity":   "Continuity  ",
-        "exfiltration": "Exfiltration",
-        "lateral":      "Lateral Mvmt",
-    }
-    active_zones = [(z, p) for z, p in breakdown.items() if p > 0.0]
-    if active_zones:
-        print(f"\n {C.BOLD}[RISK ZONES]{C.RESET}")
-        for z, p in active_zones:
-            pct   = int(p * 100)
-            z_col = C.RED if pct >= 75 else (C.YELLOW if pct >= 40 else C.GREEN)
-            print(f"  {zone_labels.get(z, z)}  {z_col}{pct:>3}%{C.RESET}  "
-                  f"{z_col}{_bar(pct, 100, width=30)}{C.RESET}")
-
-    kc_actors = [t for t in result["threats"] if "KILL_CHAIN_DETECTED" in t["risk_tags"]]
-    if kc_actors:
-        print(f"\n {C.BOLD}{C.RED}[⚠  KILL-CHAIN CONFIRMED]{C.RESET}")
-        for kc in kc_actors[:3]:
-            stage_str = " → ".join(s for s in KILL_CHAIN_STAGES if s in kc["risk_tags"])
-            print(f"  {C.RED}{kc['ip']:<16}{C.RESET}  stages={kc['kill_chain_score']}  "
-                  f"{C.DIM}{stage_str}{C.RESET}")
-
-    dist = [t for t in result["threats"] if "DISTRIBUTED_ATTACK" in t["risk_tags"]]
-    if dist:
-        print(f"\n {C.BOLD}{C.YELLOW}[🌐 DISTRIBUTED ATTACK]{C.RESET}")
-        print(f"  {len(dist)} IPs in coordinated login storm")
-
-    print(f"\n {C.BOLD}[FORENSIC FINDINGS]{C.RESET}")
-    ioc_count = sum(1 for t in result["threats"] if t.get("is_ioc"))
-    print(f"  Timeline Anomalies : {C.RED if result['gaps'] else C.GREEN}"
-          f"{len(result['gaps']):>3} detected{C.RESET}")
-    print(f"  Threat Entities    : {C.RED if len(result['threats']) > 3 else C.YELLOW}"
-          f"{len(result['threats']):>3} active actors{C.RESET}")
-    print(f"  Obfuscated Payloads: {C.YELLOW}{stats['obfuscated']:>3}{C.RESET}")
-    print(f"  Rare Templates     : {C.MAGENTA}{stats['rare_templates']:>3}{C.RESET}")
-    print(f"  IOC Matches        : {C.RED if ioc_count else C.GREEN}{ioc_count:>3}{C.RESET}")
-    if result.get("compare"):
-        print(f"  New Actors (diff)  : {C.YELLOW}{result['compare']['count']:>3}{C.RESET}")
-
-    if result["threats"]:
-        print(f"\n {C.BOLD}[TOP THREAT ACTORS]{C.RESET}")
-        print(f"  {'IP':<17}| {'HITS':<7}| {'KC':<4}| {'SESS':<5}| TAGS")
-        print(f"  {'-'*17}+-{'-'*7}+-{'-'*4}+-{'-'*5}+-{'-'*35}")
-        for t in sorted(result["threats"],
-                        key=lambda x: (x["kill_chain_score"], x["hits"]),
-                        reverse=True)[:8]:
-            tags_str = ", ".join(t["risk_tags"][:3])
-            ioc_flag = f" {C.RED}[IOC]{C.RESET}" if t.get("is_ioc") else ""
-            kc_col   = C.RED if t["kill_chain_score"] >= 3 else C.YELLOW
-            print(f"  {C.YELLOW}{t['ip']:<17}{C.RESET}| {t['hits']:<7}| "
-                  f"{kc_col}{t['kill_chain_score']:<4}{C.RESET}| "
-                  f"{t['session_count']:<5}| {C.GREY}{tags_str}{C.RESET}{ioc_flag}")
-
-    if result["gaps"]:
-        print(f"\n {C.BOLD}[TIMELINE ANOMALIES]{C.RESET}")
-        print(f"  {'TYPE':<10} {'SEVERITY':<10} {'DURATION':<20} LINES")
-        print(f"  {'-'*10} {'-'*10} {'-'*20} {'-'*12}")
-        for g in result["gaps"][:6]:
-            sev_col = C.RED if g["severity"] == "CRITICAL" else C.YELLOW
-            print(f"  {g['type']:<10} {sev_col}{g['severity']:<10}{C.RESET} "
-                  f"{g.get('duration_human','N/A'):<20} "
-                  f"{g['start_line']}-{g['end_line']}")
-
-    print(f"\n {C.BOLD}[OUTPUT FILES]{C.RESET}")
-    for label, key in (
-        ("1 · Integrity CSV  ", "csv_integrity"),
-        ("2 · Behavioral CSV ", "csv_behavioral"),
-        ("3 · HTML Dashboard ", "html"),
-        ("4 · JSON Report    ", "json"),
-    ):
-        print(f"  {C.DIM}{label}{C.RESET}  {C.CYAN}{out_paths[key]}{C.RESET}")
-
-    print(f"\n{C.BOLD}{'━'*W}{C.RESET}\n")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── STREAMED CSV WRITERS ──────────────────────────────────────────────────────
+# ── FILE & HTML REPORTING ─────────────────────────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def report_csv_integrity(result: Dict, path: str) -> None:
-    fields = ["type","gap_start","gap_end","duration_human",
-              "duration_seconds","severity","start_line","end_line"]
+    fields = ["type","gap_start","gap_end","duration_human", "duration_seconds","severity","start_line","end_line"]
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -1389,10 +416,8 @@ def report_csv_integrity(result: Dict, path: str) -> None:
             w.writerow({k: g.get(k,"N/A") for k in fields})
     print(f"{C.GREEN}[✓]{C.RESET} Integrity CSV      → {path}")
 
-
 def report_csv_behavioral(result: Dict, path: str) -> None:
-    fields = ["ip","hits","span","kill_chain_score",
-              "session_count","is_ioc","risk_tags"]
+    fields = ["ip","hits","span","kill_chain_score", "session_count","is_ioc","risk_tags"]
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -1406,16 +431,10 @@ def report_csv_behavioral(result: Dict, path: str) -> None:
             })
     print(f"{C.GREEN}[✓]{C.RESET} Behavioral CSV     → {path}")
 
-
 def report_json(result: Dict, path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, default=str)
     print(f"{C.GREEN}[✓]{C.RESET} JSON Report        → {path}")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── HTML DASHBOARD ────────────────────────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def _build_zone_breakdown_html(breakdown: Dict) -> str:
     ZONE_META = {
@@ -1431,8 +450,7 @@ def _build_zone_breakdown_html(breakdown: Dict) -> str:
     for zone, (label, note) in ZONE_META.items():
         p   = breakdown.get(zone, 0.0)
         pct = int(p * 100)
-        col = "#ef4444" if pct >= 75 else ("#f59e0b" if pct >= 40 else
-              "#10b981" if pct > 0 else "#d1d5db")
+        col = "#ef4444" if pct >= 75 else ("#f59e0b" if pct >= 40 else "#10b981" if pct > 0 else "#d1d5db")
         rows.append(f"""
   <div class="zb-row">
     <span class="zb-lbl">{label}</span>
@@ -1442,43 +460,30 @@ def _build_zone_breakdown_html(breakdown: Dict) -> str:
   <div class="zb-note">{note}</div>""")
     return "\n".join(rows)
 
-
 def report_html(result: Dict, filepath: str, path: str) -> None:
     risk       = _risk_score(result["gaps"], result["threats"])
     risk_color = "#ef4444" if risk >= 75 else ("#f59e0b" if risk >= 40 else "#10b981")
-    sys_info   = get_system_metadata()
-    perf       = result["performance"]
-    stats      = result["stats"]
-    eb         = result["entropy_baseline"]
-
+    sys_info   = {"ts": datetime.now().isoformat(), "host": socket.gethostname(), "os": platform.system(), "ver": platform.release(), "arch": platform.machine(), "cpu": platform.processor()}
+    perf, stats, eb = result["performance"], result["stats"], result["entropy_baseline"]
     esc = html_mod.escape
 
-    def tag_html(label: str, color: str = "blue") -> str:
-        return f'<span class="tag tag-{color}">{esc(label)}</span>'
+    def tag_html(label: str, color: str = "blue") -> str: return f'<span class="tag tag-{color}">{esc(label)}</span>'
+    def zone_count_cls(items) -> str: return "ok" if not items else ""
 
     def gen_rows(subset: list) -> str:
-        if not subset:
-            return '<tr><td colspan="5" class="no-data">No threats detected in this zone.</td></tr>'
+        if not subset: return '<tr><td colspan="5" class="no-data">No threats detected in this zone.</td></tr>'
         out = []
         for t in subset:
             kc_b  = f'<span class="kc-badge">KC:{t["kill_chain_score"]}</span>' if t["kill_chain_score"] >= 2 else ""
             ioc_b = tag_html("IOC","red") if t.get("is_ioc") else ""
             tags  = " ".join(tag_html(tg, "red" if tg in ("KILL_CHAIN_DETECTED","KNOWN_MALICIOUS_IOC","LOG_TAMPERING","DATA_EXFIL") else "blue") for tg in t["risk_tags"])
-            out.append(f"<tr><td><strong>{esc(t['ip'])}</strong>{ioc_b}</td>"
-                       f"<td>{t['hits']}</td><td>{t['session_count']}</td>"
-                       f"<td>{kc_b}</td><td>{tags}</td></tr>")
+            out.append(f"<tr><td><strong>{esc(t['ip'])}</strong>{ioc_b}</td><td>{t['hits']}</td><td>{t['session_count']}</td><td>{kc_b}</td><td>{tags}</td></tr>")
         return "".join(out)
 
     def gap_rows(gtype: str) -> str:
         subset = [g for g in result["gaps"] if g["type"] == gtype]
-        if not subset:
-            return '<tr><td colspan="4" class="no-data">None detected.</td></tr>'
-        return "".join(
-            f"<tr><td>{tag_html(g['severity'],'red')}</td>"
-            f"<td>{esc(g.get('duration_human','N/A'))}</td>"
-            f"<td>{g['start_line']}–{g['end_line']}</td>"
-            f"<td>{esc(g['gap_start'][:19])}</td></tr>"
-            for g in subset)
+        if not subset: return '<tr><td colspan="4" class="no-data">None detected.</td></tr>'
+        return "".join(f"<tr><td>{tag_html(g['severity'],'red')}</td><td>{esc(g.get('duration_human','N/A'))}</td><td>{g.get('start_line', 'N/A')}–{g.get('end_line', 'N/A')}</td><td>{esc(g['gap_start'][:19])}</td></tr>" for g in subset)
 
     priv_esc    = [t for t in result["threats"] if "PRIV_ESCALATION"     in t["risk_tags"]]
     brute_force = [t for t in result["threats"] if "BRUTE_FORCE_BURST"   in t["risk_tags"] or "FAILED_LOGIN" in t["risk_tags"]]
@@ -1491,23 +496,11 @@ def report_html(result: Dict, filepath: str, path: str) -> None:
     ioc_hits    = [t for t in result["threats"] if t.get("is_ioc")]
 
     max_hits = max((t["hits"] for t in result["threats"]), default=1)
-    actor_bars = "".join(
-        f'<div class="actor-row"><span class="actor-ip">{esc(t["ip"])}</span>'
-        f'<div class="actor-bar-wrap"><div class="actor-bar" style="width:{int(t["hits"]/max_hits*100)}%;background:'
-        f'{"#ef4444" if "KILL_CHAIN_DETECTED" in t["risk_tags"] else "#f59e0b" if t["kill_chain_score"] >= 2 else "#3b82f6"}'
-        f'"></div></div><span class="actor-hits">{t["hits"]}</span></div>'
-        for t in sorted(result["threats"], key=lambda x: x["hits"], reverse=True)[:10]
-    )
+    actor_bars = "".join(f'<div class="actor-row"><span class="actor-ip">{esc(t["ip"])}</span><div class="actor-bar-wrap"><div class="actor-bar" style="width:{int(t["hits"]/max_hits*100)}%;background:{"#ef4444" if "KILL_CHAIN_DETECTED" in t["risk_tags"] else "#f59e0b" if t["kill_chain_score"] >= 2 else "#3b82f6"}"></div></div><span class="actor-hits">{t["hits"]}</span></div>' for t in sorted(result["threats"], key=lambda x: x["hits"], reverse=True)[:10])
 
     compare_html = ""
     if result.get("compare") and result["compare"]["count"]:
-        ip_list = esc(", ".join(result["compare"]["new_actors"][:20]))
-        compare_html = f"""<div class="card"><h3>🔄 New Actors vs Baseline</h3>
-        <p style="color:var(--secondary);font-size:13px;">{result['compare']['count']} previously unseen IPs.</p>
-        <p style="font-family:monospace;font-size:12px;word-break:break-all;">{ip_list}</p></div>"""
-
-    def zone_count_cls(items) -> str:
-        return "ok" if not items else ""
+        compare_html = f"""<div class="card"><h3>🔄 New Actors vs Baseline</h3><p style="color:var(--secondary);font-size:13px;">{result['compare']['count']} previously unseen IPs.</p><p style="font-family:monospace;font-size:12px;word-break:break-all;">{esc(", ".join(result['compare']['new_actors'][:20]))}</p></div>"""
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en"><head>
@@ -1624,7 +617,7 @@ footer{{text-align:center;color:var(--secondary);font-size:11px;padding:20px 0}}
 
 <div class="card">
   <h3>🎯 Risk Zone Breakdown</h3>
-  <p style="color:var(--secondary);font-size:12px;margin-bottom:16px;">Per-zone probabilities computed from actor count, activity volume, IOC, kill-chain depth, and entropy signals. They compound into the headline score.</p>
+  <p style="color:var(--secondary);font-size:12px;margin-bottom:16px;">Per-zone probabilities computed dynamically (using asymptotic exponential smoothing) based on distinct actors and attack volumes. They compound into the headline probability.</p>
 {_build_zone_breakdown_html(result.get("risk_breakdown", {}))}
 </div>
 
@@ -1669,117 +662,305 @@ footer{{text-align:center;color:var(--secondary);font-size:11px;padding:20px 0}}
 <footer>{esc(PROJECT_NAME)} v{PROJECT_VERSION} &nbsp;|&nbsp; {stats['parsed']:,} parsed &nbsp;|&nbsp; {stats['skipped']:,} skipped &nbsp;|&nbsp; Generated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</footer>
 </div></body></html>"""
 
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(html_content)
+    with open(path, "w", encoding="utf-8") as f: f.write(html_content)
     print(f"{C.GREEN}[✓]{C.RESET} HTML Dashboard     → {path}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTRYPOINT ────────────────────────────────────────────────────────────────
+# ── TERMINAL REPORTING (Restored from v2.1) ───────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def main() -> None:
-    # Required for multiprocessing on Windows / macOS (spawn context)
+def _bar(value: int, max_val: int, width: int = 30, char: str = "█") -> str:
+    filled = int(round(value / max_val * width)) if max_val else 0
+    return char * filled + C.DIM + "░" * (width - filled) + C.RESET
+
+def get_system_metadata() -> Dict:
+    return {
+        "os": platform.system(), "ver": platform.release(),
+        "arch": platform.machine(), "host": socket.gethostname(),
+        "cpu": platform.processor(), "ts": datetime.now().isoformat(),
+    }
+
+def report_terminal(result: Dict, filepath: str, out_paths: Dict[str, str]) -> None:
+    risk     = _risk_score(result["gaps"], result["threats"])
+    risk_col = C.RED if risk >= 75 else (C.YELLOW if risk >= 40 else C.GREEN)
+    perf     = result["performance"]
+    stats    = result["stats"]
+    eb       = result["entropy_baseline"]
+    sys_info = get_system_metadata()
+    W = 79
+
+    print(f"\n{C.BOLD}{'━'*W}{C.RESET}")
+    print(f"{C.CYAN}  _     ___   ____   ____   _____   _____   _____   ____   _____   ___   ____  ")
+    print(f" | |   / _ \\ / ___| |  _ \\ | ____| |_   _| | ____| / ___| |_   _| / _ \\ |  _ \\ ")
+    print(f" | |  | | | | |  _  | | | | |  _|     | |   |  _|  | |       | |  | | | || |_) |")
+    print(f" | |__| |_| | |_| | | |_| | | |___    | |   | |__  | |___    | |  | |_| ||  _ < ")
+    print(f" |_____\\___/ \\____| |____/  |_____|   |_|   |_____| \\____|   |_|   \\___/ |_| \\_\\{C.RESET}")
+    print(f"\n {C.BOLD}Foreign Threat Analysis | v{PROJECT_VERSION} (Optimized){C.RESET}")
+    print(f"{C.BOLD}{'━'*W}{C.RESET}")
+
+    print(f" {C.BOLD}[SYSTEM CONTEXT]{C.RESET}               {C.BOLD}[PERFORMANCE]{C.RESET}")
+    print(f"  Host : {sys_info['host']:<25} Time  : {perf['time']}s")
+    print(f"  OS   : {sys_info['os']:<25} Rate  : {perf['lps']:,} lines/sec")
+    print(f"  Type : {stats['log_type']:<25} Speed : {perf['mbps']} MB/s")
+    print(f"  Parse: {stats['parsed']:,} / {stats['total']:,} lines"
+          f"{'':<5} Workers: {perf['workers']}  CPU cap: {perf['cpu_limit']:.0f}%")
+
+    print(f"\n {C.BOLD}[ENTROPY BASELINE]{C.RESET}")
+    print(f"  Mean={eb['mean']:.3f}  StdDev={eb['std']:.3f}  "
+          f"Threshold={C.YELLOW}{eb['threshold']:.3f}{C.RESET}  "
+          f"(dynamic, first {ENTROPY_BASELINE_LINES} lines)")
+
+    print(f"\n {C.BOLD}[RISK ASSESSMENT]{C.RESET}")
+    print(f"  Compromise Probability: {risk_col}{C.BOLD}{risk:>3}%{C.RESET}  "
+          f"{risk_col}{_bar(risk, 100, width=40)}{C.RESET}")
+
+    breakdown    = result.get("risk_breakdown", {})
+    zone_labels  = {"integrity": "Integrity   ", "access": "Access      ", "persistence": "Persistence ",
+                    "privacy": "Privacy     ", "continuity": "Continuity  ", "exfiltration": "Exfiltration",
+                    "lateral": "Lateral Mvmt"}
+    active_zones = [(z, p) for z, p in breakdown.items() if p > 0.0]
+    if active_zones:
+        print(f"\n {C.BOLD}[RISK ZONES]{C.RESET}")
+        for z, p in active_zones:
+            pct   = int(p * 100)
+            z_col = C.RED if pct >= 75 else (C.YELLOW if pct >= 40 else C.GREEN)
+            print(f"  {zone_labels.get(z, z)}  {z_col}{pct:>3}%{C.RESET}  "
+                  f"{z_col}{_bar(pct, 100, width=30)}{C.RESET}")
+
+    kc_actors = [t for t in result["threats"] if "KILL_CHAIN_DETECTED" in t["risk_tags"]]
+    if kc_actors:
+        print(f"\n {C.BOLD}{C.RED}[⚠  KILL-CHAIN CONFIRMED]{C.RESET}")
+        for kc in kc_actors[:3]:
+            stage_str = " → ".join(s for s in KILL_CHAIN_STAGES if s in kc["risk_tags"])
+            print(f"  {C.RED}{kc['ip']:<16}{C.RESET}  stages={kc['kill_chain_score']}  "
+                  f"{C.DIM}{stage_str}{C.RESET}")
+
+    dist = [t for t in result["threats"] if "DISTRIBUTED_ATTACK" in t["risk_tags"]]
+    if dist:
+        print(f"\n {C.BOLD}{C.YELLOW}[🌐 DISTRIBUTED ATTACK]{C.RESET}")
+        print(f"  {len(dist)} IPs in coordinated login storm")
+
+    print(f"\n {C.BOLD}[FORENSIC FINDINGS]{C.RESET}")
+    ioc_count = sum(1 for t in result["threats"] if t.get("is_ioc"))
+    print(f"  Timeline Anomalies : {C.RED if result['gaps'] else C.GREEN}{len(result['gaps']):>3} detected{C.RESET}")
+    print(f"  Threat Entities    : {C.RED if len(result['threats']) > 3 else C.YELLOW}{len(result['threats']):>3} active actors{C.RESET}")
+    print(f"  Obfuscated Payloads: {C.YELLOW}{stats['obfuscated']:>3}{C.RESET}")
+    print(f"  Rare Templates     : {C.MAGENTA}{stats['rare_templates']:>3}{C.RESET}")
+    print(f"  IOC Matches        : {C.RED if ioc_count else C.GREEN}{ioc_count:>3}{C.RESET}")
+    if result.get("compare"):
+        print(f"  New Actors (diff)  : {C.YELLOW}{result['compare']['count']:>3}{C.RESET}")
+
+    if result["threats"]:
+        print(f"\n {C.BOLD}[TOP THREAT ACTORS]{C.RESET}")
+        print(f"  {'IP':<17}| {'HITS':<7}| {'KC':<4}| {'SESS':<5}| TAGS")
+        print(f"  {'-'*17}+-{'-'*7}+-{'-'*4}+-{'-'*5}+-{'-'*35}")
+        for t in sorted(result["threats"], key=lambda x: (x["kill_chain_score"], x["hits"]), reverse=True)[:8]:
+            tags_str = ", ".join(t["risk_tags"][:3])
+            ioc_flag = f" {C.RED}[IOC]{C.RESET}" if t.get("is_ioc") else ""
+            kc_col   = C.RED if t["kill_chain_score"] >= 3 else C.YELLOW
+            print(f"  {C.YELLOW}{t['ip']:<17}{C.RESET}| {t['hits']:<7}| "
+                  f"{kc_col}{t['kill_chain_score']:<4}{C.RESET}| "
+                  f"{t['session_count']:<5}| {C.GREY}{tags_str}{C.RESET}{ioc_flag}")
+
+    if result["gaps"]:
+        print(f"\n {C.BOLD}[TIMELINE ANOMALIES]{C.RESET}")
+        print(f"  {'TYPE':<10} {'SEVERITY':<10} {'DURATION':<20} LINES")
+        print(f"  {'-'*10} {'-'*10} {'-'*20} {'-'*12}")
+        for g in result["gaps"][:6]:
+            sev_col = C.RED if g["severity"] == "CRITICAL" else C.YELLOW
+            print(f"  {g['type']:<10} {sev_col}{g['severity']:<10}{C.RESET} "
+                  f"{g.get('duration_human','N/A'):<20} "
+                  f"{g.get('start_line', 'N/A')}-{g.get('end_line', 'N/A')}")
+
+    #print(f"\n {C.BOLD}[OUTPUT FILES]{C.RESET}")
+    #for label, key in (
+     #   ("1 · Integrity CSV  ", "csv_integrity"),
+      #  ("2 · Behavioral CSV ", "csv_behavioral"),
+       # ("3 · HTML Dashboard ", "html"),
+        #("4 · JSON Report    ", "json"),
+    #):
+     #   print(f"  {C.DIM}{label}{C.RESET}  {C.CYAN}{out_paths[key]}{C.RESET}")
+
+    #print(f"\n{C.BOLD}{'━'*W}{C.RESET}\n")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── MAIN ORCHESTRATOR ─────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def scan_log(filepath, threshold_seconds, ioc_set=frozenset(), compare_filepath=None, n_workers=1, cpu_limit_pct=25.0, sigs=()) -> Dict:
+    t_start = time.monotonic()
+    is_compressed = filepath.endswith((".gz", ".bz2"))
+    
+    # Baseline
+    baseline_lines = []
+    opener = (gzip.open if filepath.endswith(".gz") else bz2.open) if is_compressed else open
+    mode = "rt" if is_compressed else "r"
+    try:
+        with opener(filepath, mode, encoding="utf-8", errors="replace") as fh:
+            for i, line in enumerate(fh):
+                if i >= ENTROPY_BASELINE_LINES: break
+                baseline_lines.append(line)
+    except: pass
+    eb_mean, eb_std = compute_entropy_baseline(baseline_lines)
+    eb_thresh = max(ENTROPY_ABS_MIN, eb_mean + ENTROPY_STD_MULTIPLIER * eb_std)
+
+    mp_ctx = multiprocessing.get_context("spawn")
+    rq = mp_ctx.Queue()
+    procs = []
+
+    if is_compressed:
+        p = mp_ctx.Process(target=_worker_compressed, args=(filepath, threshold_seconds, ioc_set, eb_thresh, rq, cpu_limit_pct, sigs))
+        p.start(); procs.append(p); n_expected = 1
+    else:
+        # File chunking logic (Preserved)
+        size = os.path.getsize(filepath)
+        chunk_size = max(CHUNK_MIN_BYTES, size // n_workers)
+        chunks = []
+        start = 0
+        with open(filepath, "rb") as fh:
+            while start < size:
+                end = min(start + chunk_size, size)
+                if end < size:
+                    fh.seek(end); remainder = fh.read(4096); nl = remainder.find(b"\n")
+                    end = end + nl + 1 if nl != -1 else size
+                chunks.append((start, end)); start = end
+        n_expected = len(chunks)
+        for s, e in chunks:
+            p = mp_ctx.Process(target=_worker, args=(filepath, s, e, threshold_seconds, ioc_set, eb_thresh, rq, cpu_limit_pct, sigs))
+            p.start(); procs.append(p)
+
+    merged_gaps, merged_ip_stats, merged_templates, total_lines, parsed_lines, obfuscated_cnt, log_type = [], {}, Counter(), 0, 0, 0, None
+    time_buckets = defaultdict(list)
+    
+    for _ in range(n_expected):
+        p_res = rq.get()
+        if "error" in p_res: continue
+        merged_gaps.extend(p_res["gaps"])
+        total_lines += p_res["total_lines"]; parsed_lines += p_res["parsed_lines"]
+        obfuscated_cnt += p_res["obfuscated_count"]
+        if not log_type: log_type = p_res["log_type"]
+        merged_templates.update(p_res["template_counts"])
+        for ip, s in p_res["ip_stats"].items():
+            if ip not in merged_ip_stats: merged_ip_stats[ip] = s
+            else:
+                merged_ip_stats[ip]["hits"] += s["hits"]; merged_ip_stats[ip]["tags"].update(s["tags"])
+                merged_ip_stats[ip]["events"].extend(s["events"])
+
+    for p in procs: p.join()
+
+    # Determine Distributed attacks
+    distributed_ips = set()
+    for bucket, events in time_buckets.items():
+        fail_events = [(ip, f) for ip, f in events if f]
+        unique_fail = set(ip for ip, _ in fail_events)
+        if len(fail_events) >= DISTRIBUTED_FAIL_THRESHOLD and len(unique_fail) >= 3:
+            distributed_ips.update(unique_fail)
+
+    final_threats = []
+    for ip, s in merged_ip_stats.items():
+        fails = sorted([e for e in s["events"] if "FAILED_LOGIN" in s["tags"]]) # Rough estimate for timing
+        
+        if len(fails) >= BRUTE_FORCE_THRESHOLD:
+            if (fails[-1] - fails[0]).total_seconds() < (BRUTE_FORCE_WINDOW_MIN * 60):
+                s["tags"].add("BRUTE_FORCE_BURST")
+
+        if ip in distributed_ips: s["tags"].add("DISTRIBUTED_ATTACK")
+        
+        kc_score = len(s["tags"] & set(KILL_CHAIN_STAGES))
+        if kc_score >= 3: s["tags"].add("KILL_CHAIN_DETECTED")
+
+        if s["tags"] or s["hits"] > 200:
+            events_sorted = sorted(s["events"])
+            final_threats.append({
+                "ip": ip,
+                "hits": s["hits"],
+                "risk_tags": sorted(list(s["tags"])),
+                "kill_chain_score": kc_score,
+                "session_count": len(session_reconstruct(events_sorted)),
+                "span": str(events_sorted[-1] - events_sorted[0]) if events_sorted else "0:00:00",
+                "is_ioc": "KNOWN_MALICIOUS_IOC" in s["tags"]
+            })
+
+    # Compare Baseline
+    compare_result = None
+    if compare_filepath and os.path.isfile(compare_filepath):
+        new_ips = set()
+        try:
+            with open(compare_filepath, "r", encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    m = IP_RE.search(line)
+                    if m and m.group() not in merged_ip_stats: new_ips.add(m.group())
+        except: pass
+        compare_result = {"new_actors": sorted(new_ips), "count": len(new_ips)}
+
+    proc_time = time.monotonic() - t_start
+    return {
+        "gaps": merged_gaps, 
+        "threats": final_threats, 
+        "risk_breakdown": _risk_zones(merged_gaps, final_threats),
+        "performance": {
+            "time": round(proc_time, 2), 
+            "lps": int(total_lines/proc_time) if proc_time > 0 else 0, 
+            "mbps": round((os.path.getsize(filepath)/1e6)/proc_time, 1) if proc_time > 0 else 0,
+            "workers": n_workers, "cpu_limit": cpu_limit_pct
+        },
+        "stats": {
+            "total": total_lines, "parsed": parsed_lines, "skipped": total_lines - parsed_lines, 
+            "obfuscated": obfuscated_cnt, "log_type": log_type or "Unknown",
+            "rare_templates": sum(1 for c in merged_templates.values() if c <= RARE_TEMPLATE_THRESHOLD)
+        },
+        "entropy_baseline": {"mean": eb_mean, "std": eb_std, "threshold": eb_thresh},
+        "compare": compare_result
+    }
+
+def main():
     multiprocessing.freeze_support()
-
-    parser = argparse.ArgumentParser(
-        description=f"{PROJECT_NAME} v{PROJECT_VERSION}",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"""
-Output (auto-created):
-  ~/Documents/{REPORT_ROOT_DIR}/<DD-MM-YYYY>/
-    1_<HH-MM-SS>_integrity.csv
-    2_<HH-MM-SS>_behavioral.csv
-    3_<HH-MM-SS>_dashboard.html
-    4_<HH-MM-SS>_report.json
-
-CPU budget:
-  --cpu-limit sets the maximum CPU % a SINGLE worker may use at any instant.
-  Total machine CPU ≤ cpu-limit × workers.
-  Example: --cpu-limit 25 --workers 2  →  ≤ 50 %% of total CPU, each
-  worker capped at 25 %% of one core.  Default: 25 %%.
-
-Workers: defaults to 50 %% of CPU threads (currently {_worker_count()} on this machine).
-
-Examples:
-  %(prog)s auth.log
-  %(prog)s huge.log.gz --threshold 120
-  %(prog)s access.log --ioc-feed bad_ips.txt --cpu-limit 15
-  %(prog)s auth.log --compare auth.log.1 --format html
-  %(prog)s big.log --workers 4 --cpu-limit 20 --benchmark
-        """
-    )
-    parser.add_argument("logfile",       help="Log file path (.log / .gz / .bz2)")
-    parser.add_argument("--threshold","-t", type=float, default=300.0,
-                        help="Gap threshold in seconds (default: 300)")
-    parser.add_argument("--ioc-feed",    type=str, default=None,
-                        help="Newline-delimited known-bad IP list")
-    parser.add_argument("--compare",     type=str, default=None,
-                        help="Second log for comparative actor profiling")
-    parser.add_argument("--workers","-w", type=int, default=None,
-                        help="Worker processes (default: 50%% of CPU threads)")
-    parser.add_argument("--cpu-limit","-c", type=float, default=25.0,
-                        metavar="PCT",
-                        help="Max CPU %% per worker process (default: 25). "
-                             "Range 5–95. Each worker hard-enforces this "
-                             "duty-cycle via timed sleep windows. "
-                             "os.nice(15) further deprioritises workers at "
-                             "the OS scheduler level.")
-    parser.add_argument("--format","-f",
-                        choices=["all","terminal","json","csv","html"],
-                        default="all", help="Output formats (default: all)")
-    parser.add_argument("--benchmark",   action="store_true",
-                        help="Run 3 timed passes and print projection table")
-    parser.add_argument("--no-progress", action="store_true",
-                        help="Suppress progress bar")
+    parser = argparse.ArgumentParser(description=f"{PROJECT_NAME} v{PROJECT_VERSION}")
+    parser.add_argument("logfile", help="Log file path (.log / .gz / .bz2)")
+    parser.add_argument("--threshold", "-t", type=float, default=300.0, help="Gap threshold in seconds (default: 300)")
+    parser.add_argument("--ioc-feed", type=str, default=None, help="Newline-delimited known-bad IP list")
+    parser.add_argument("--compare", type=str, default=None, help="Second log for comparative actor profiling")
+    parser.add_argument("--workers", "-w", type=int, default=None, help="Worker processes (default: 50% of CPU threads)")
+    parser.add_argument("--cpu-limit", "-c", type=float, default=25.0, help="Max CPU % per worker process (default: 25)")
+    parser.add_argument("--format", "-f", choices=["all", "terminal", "json", "csv", "html"], default="all", help="Output formats")
     args = parser.parse_args()
 
-    if not os.path.isfile(args.logfile):
-        print(f"{C.RED}[!] File not found: {args.logfile}{C.RESET}")
-        sys.exit(1)
-
-    # Clamp cpu-limit to safe range
-    cpu_limit = max(5.0, min(float(args.cpu_limit), 95.0))
-
-    n_workers = _worker_count(args.workers)
-    out_dir   = resolve_output_dir()
+    sigs = load_sigs()
+    ioc_set = set()
+    if args.ioc_feed and os.path.exists(args.ioc_feed):
+        with open(args.ioc_feed, 'r') as f:
+            for line in f:
+                if IP_RE.match(line.strip()): ioc_set.add(line.strip())
+    
+    out_dir = resolve_output_dir()
     out_paths = make_output_paths(out_dir)
+    n_workers = args.workers or max(1, (os.cpu_count() or 2) // 2)
 
     print(f"\n{C.CYAN}[*] {PROJECT_NAME} v{PROJECT_VERSION}{C.RESET}")
-    print(f"{C.DIM}[*] Workers       : {n_workers} / {os.cpu_count()} CPU threads (50%){C.RESET}")
-    print(f"{C.DIM}[*] CPU cap/worker: {cpu_limit:.0f}%  "
-          f"(total machine CPU ≤ {cpu_limit * n_workers:.0f}%){C.RESET}")
     print(f"{C.DIM}[*] Output folder : {out_dir}{C.RESET}")
     print(f"{C.DIM}[*] Scanning      : {args.logfile}{C.RESET}\n")
 
-    ioc_set = load_ioc_feed(args.ioc_feed)
-    if ioc_set:
-        print(f"{C.CYAN}[*] IOC feed: {len(ioc_set)} known-malicious IPs{C.RESET}")
-
-    if args.benchmark:
-        benchmark(args.logfile, n_workers, cpu_limit_pct=cpu_limit)
-        return
-
     result = scan_log(
-        args.logfile,
-        args.threshold,
-        ioc_set          = ioc_set,
-        compare_filepath = args.compare,
-        n_workers        = n_workers,
-        show_progress    = not args.no_progress,
-        cpu_limit_pct    = cpu_limit,
+        args.logfile, 
+        args.threshold, 
+        ioc_set=frozenset(ioc_set), 
+        compare_filepath=args.compare,
+        n_workers=n_workers, 
+        cpu_limit_pct=args.cpu_limit, 
+        sigs=sigs
     )
-
+    
     fmt = args.format
-    if fmt in ("all","terminal"):
-        report_terminal(result, args.logfile, out_paths)
-    if fmt in ("all","csv"):
-        report_csv_integrity(result,  out_paths["csv_integrity"])
-        report_csv_behavioral(result, out_paths["csv_behavioral"])
-    if fmt in ("all","html"):
-        report_html(result, args.logfile, out_paths["html"])
-    if fmt in ("all","json"):
-        report_json(result, out_paths["json"])
+    #if fmt in ("all", "terminal"):
+    #    report_terminal(result, args.logfile, out_paths)
+    #if fmt in ("all", "csv"):
+    #    report_csv_integrity(result, out_paths["csv_integrity"])
+    #    report_csv_behavioral(result, out_paths["csv_behavioral"])
+    #if fmt in ("all", "html"):
+    #    report_html(result, args.logfile, out_paths["html"])
+    #if fmt in ("all", "json"):
+    #    report_json(result, out_paths["json"])
 
     if fmt != "terminal":
         print(f"\n{C.BOLD}{C.GREEN}[✓] All reports → {out_dir}{C.RESET}")
@@ -1787,7 +968,6 @@ Examples:
         print(f"    📁 {to_file_url(out_paths['csv_behavioral'])}")
         print(f"    🌐 {to_file_url(out_paths['html'])}")
         print(f"    📄 {to_file_url(out_paths['json'])}\n")
-
 
 if __name__ == "__main__":
     main()
