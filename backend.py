@@ -3,6 +3,8 @@ import time
 import json
 import os
 import logging
+import subprocess
+import shutil
 import threading
 import tempfile
 import re
@@ -51,6 +53,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
+FRONTEND_DEV_CMD = ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+frontend_process = None
 
 # ── Helper Functions ──
 
@@ -202,6 +208,27 @@ def cleanup_manual_scans():
             # If older than 24 hours (86400 seconds), delete it
             if now - os.stat(filepath).st_mtime > 86400:
                 os.remove(filepath)
+
+
+def start_frontend() -> subprocess.Popen | None:
+    """Starts the Vite frontend dev server in a separate process."""
+    package_json = os.path.join(FRONTEND_DIR, "package.json")
+    if not os.path.isfile(package_json):
+        logger.warning("Frontend package.json not found at %s; skipping frontend startup.", package_json)
+        return None
+
+    if not shutil.which("npm"):
+        logger.warning("npm is not available on PATH; skipping frontend startup.")
+        return None
+
+    try:
+        return subprocess.Popen(
+            FRONTEND_DEV_CMD,
+            cwd=FRONTEND_DIR,
+        )
+    except Exception as exc:
+        logger.error("Failed to start frontend dev server: %s", exc)
+        return None
 
 # ── Background Thread (24/7 Periodic Scanner) ──
 
@@ -357,9 +384,15 @@ if __name__ == "__main__":
             logger.error(f"Provided log file not found: {cli_log_file}")
             sys.exit(1)
 
+    frontend_process = start_frontend()
+
     # Start the continuous 24/7 monitoring background thread
     monitor_thread = threading.Thread(target=continuous_monitor, daemon=True)
     monitor_thread.start()
     
-    # Start server
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False, allow_unsafe_werkzeug=True)
+    try:
+        # Start server
+        socketio.run(app, host="0.0.0.0", port=5000, debug=False, allow_unsafe_werkzeug=True)
+    finally:
+        if frontend_process and frontend_process.poll() is None:
+            frontend_process.terminate()
