@@ -2,6 +2,7 @@ import argparse
 import multiprocessing
 import os
 import sys
+import time
 
 from config import PROJECT_NAME, PROJECT_VERSION, REPORT_ROOT_DIR, C
 from engine import scan_log, load_ioc_feed
@@ -19,8 +20,6 @@ def main():
     formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    # MODIFIED: nargs='?' makes the logfile optional so `python log.py -a` works without errors
-    
     parser.add_argument("logfile", help="Path to log file (.log, .gz, .bz2 supported)")
                         
     parser.add_argument("--threshold", "-t", type=float, default=300.0,
@@ -47,12 +46,11 @@ def main():
         print(f"{C.RED}[!] File not found: {args.logfile}{C.RESET}")
         sys.exit(1)
 
-    # ── Resolve output directory and file paths ───────────────────────────────
     out_dirs  = resolve_output_dir()
     out_paths = make_output_paths(out_dirs)
 
     print(f"\n{C.CYAN}[*] {PROJECT_NAME} v{PROJECT_VERSION}{C.RESET}")
-    print(f"{C.DIM}[*] Scanning      : {args.logfile} …{C.RESET}\n")
+    print(f"{C.DIM}[*] Scanning      : {args.logfile} …{C.RESET}")
 
     ioc_set = load_ioc_feed(args.ioc_feed)
     if ioc_set:
@@ -70,23 +68,55 @@ def main():
 
     fmt = args.format
 
+    # 1. Output Terminal Dashboard Immediately
     if fmt in ("all", "terminal"):
         report_terminal(result, args.logfile)
 
+    # 2. Compile File Generation Tasks
+    tasks = []
     if fmt in ("all", "csv"):
-        report_csv_integrity(result,  out_paths["csv_integrity"])
-        report_csv_behavioral(result, out_paths["csv_behavioral"])
+        tasks.append(("CSV Integrity Database", lambda: report_csv_integrity(result, out_paths["csv_integrity"])))
+        tasks.append(("CSV Behavioral Matrix", lambda: report_csv_behavioral(result, out_paths["csv_behavioral"])))
     if fmt in ("all", "html"):
-        report_html(result, args.logfile, out_paths["html"])
+        tasks.append(("HTML Visual Dashboard", lambda: report_html(result, args.logfile, out_paths["html"])))
     if fmt in ("all", "json"):
-        report_json(result, out_paths["json"])
+        tasks.append(("JSON Raw Telemetry", lambda: report_json(result, out_paths["json"])))
 
-    if fmt != "terminal":
-        print(f"📁 {C.BOLD}Integrity CSV{C.RESET}  : {to_file_url(out_paths['csv_integrity'])}")
-        print(f"📁 {C.BOLD}Behavioral CSV{C.RESET} : {to_file_url(out_paths['csv_behavioral'])}")
-        print(f"🌐 {C.BOLD}Visual Report{C.RESET}  : {to_file_url(out_paths['html'])}")
-        print(f"📄 {C.BOLD}JSON Data{C.RESET}      : {to_file_url(out_paths['json'])}\n")
+    # 3. Process File Tasks with Progress Bar
+    if tasks:
+        if fmt != "terminal":
+            print(f"\n{C.CYAN}[*]{C.RESET} Generating Forensic Evidence Files...")
+            
+        total = len(tasks)
+        for i, (name, func) in enumerate(tasks):
+            # Print current progress before executing task
+            pct = int((i / total) * 100)
+            bar_len = 25
+            filled = int(bar_len * i / total)
+            bar = '█' * filled + '░' * (bar_len - filled)
+            sys.stdout.write(f"\r    {C.DIM}[{C.RESET}{C.GREEN}{bar}{C.RESET}{C.DIM}]{C.RESET} {pct:>3}% | {name:<25}")
+            sys.stdout.flush()
+            
+            # Execute File Save
+            func()
+            
+            # Artificial micro-delay so the progress bar is actually visible
+            time.sleep(0.15) 
 
+        # Finish to 100%
+        bar = '█' * 25
+        sys.stdout.write(f"\r    {C.DIM}[{C.RESET}{C.GREEN}{bar}{C.RESET}{C.DIM}]{C.RESET} 100% | {C.GREEN}All files committed to disk.{C.RESET}       \n")
+        sys.stdout.flush()
+
+        # Print Output Paths
+        print()
+        if fmt in ("all", "csv"):
+            print(f"📁 {C.BOLD}Integrity CSV{C.RESET}  : {to_file_url(out_paths['csv_integrity'])}")
+            print(f"📁 {C.BOLD}Behavioral CSV{C.RESET} : {to_file_url(out_paths['csv_behavioral'])}")
+        if fmt in ("all", "html"):
+            print(f"🌐 {C.BOLD}Visual Report{C.RESET}  : {to_file_url(out_paths['html'])}")
+        if fmt in ("all", "json"):
+            print(f"📄 {C.BOLD}JSON Data{C.RESET}      : {to_file_url(out_paths['json'])}\n")
 
 if __name__ == "__main__":
     main()

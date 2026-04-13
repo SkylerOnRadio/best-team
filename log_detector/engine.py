@@ -4,6 +4,8 @@ import mmap
 import gzip
 import bz2
 import multiprocessing
+import threading
+import sys
 from collections import Counter, defaultdict, deque
 from typing import Dict, Set
 
@@ -11,7 +13,7 @@ from config import (
     IP_PATTERN, ENTROPY_BASELINE_LINES, ENTROPY_ABS_MIN, ENTROPY_STD_MULTIPLIER, 
     DISTRIBUTED_ATTACK_WINDOW, DISTRIBUTED_FAIL_THRESHOLD, BRUTE_FORCE_THRESHOLD, 
     BRUTE_FORCE_WINDOW_MIN, RARE_TEMPLATE_THRESHOLD, CHUNK_MIN_BYTES, 
-    THROTTLE_WINDOW_S, THROTTLE_BATCH, KILL_CHAIN_STAGES
+    THROTTLE_WINDOW_S, THROTTLE_BATCH, KILL_CHAIN_STAGES, C
 )
 from intelligence import (
     compute_entropy_baseline, calculate_entropy, fast_parse_timestamp, 
@@ -53,18 +55,56 @@ def _iter_line_bytes(chunk_bytes: bytes):
     while True:
         pos = chunk_bytes.find(b'\n', start)
         if pos == -1:
-            if start < len(chunk_bytes): yield chunk_bytes[start:].decode('utf-8', 'replace')
+            if start < len(chunk_bytes): 
+                yield chunk_bytes[start:].decode('utf-8', 'replace'), len(chunk_bytes) - start
             break
-        yield chunk_bytes[start:pos].decode('utf-8', 'replace')
+        yield chunk_bytes[start:pos].decode('utf-8', 'replace'), (pos - start + 1)
         start = pos + 1
 
-def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_limit, sigs):
+def _progress_monitor(progress_val, total_bytes, is_compressed, done_event):
+    start_time = time.time()
+    
+    def get_msg(p):
+        if p < 15: return "Mapping chunks & extracting timestamps..."
+        if p < 35: return "Building timeline & calculating entropy..."
+        if p < 55: return "Matching behavioral signatures & IOCs..."
+        if p < 75: return "Reconstructing threat actor sessions..."
+        if p < 95: return "Detecting kill-chains & dist. attacks..."
+        return "Merging worker memory & final scoring..."
+
+    while not done_event.wait(0.1):
+        val = progress_val.value
+        elapsed = time.time() - start_time
+        
+        if is_compressed:
+            cycle = int(elapsed * 2) % 5
+            msgs = ["Extracting stream...", "Parsing timeline...", "Calculating entropy...", "Matching signatures...", "Reconstructing sessions..."]
+            msg = msgs[cycle]
+            rate = val / elapsed if elapsed > 0 else 0
+            sys.stdout.write(f"\r{C.CYAN}[*]{C.RESET} {msg:<25} | {C.BOLD}{int(val):,}{C.RESET} lines [{int(rate):,} l/s]    ")
+        else:
+            pct = (val / total_bytes) * 100 if total_bytes > 0 else 0
+            pct = min(100.0, pct)
+            msg = get_msg(pct)
+            
+            bar_len = 25
+            filled = int(bar_len * pct / 100)
+            bar = '█' * filled + '░' * (bar_len - filled)
+            rate_mb = (val / 1e6) / elapsed if elapsed > 0 else 0
+            sys.stdout.write(f"\r{C.CYAN}[*]{C.RESET} [{C.GREEN}{bar}{C.RESET}] {C.BOLD}{pct:>4.1f}%{C.RESET} | {rate_mb:>5.1f} MB/s | {C.DIM}{msg:<40}{C.RESET}")
+        sys.stdout.flush()
+
+    sys.stdout.write("\r" + " " * 110 + "\r")
+    sys.stdout.flush()
+
+def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_limit, sigs, progress_val):
     try: os.nice(15)
     except: pass
     throttle = _throttle_init(cpu_limit)
     gaps, ip_stats, templates = [], {}, Counter()
     t_lines, p_lines, obf_cnt, b_ctr, log_type, prev_ts = 0, 0, 0, 0, None, None
     t_buckets = defaultdict(list)
+    local_bytes = 0
 
     try:
         with open(filepath, "rb") as fh:
@@ -73,9 +113,14 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
                 mm.seek(start); chunk = mm.read(end - start); mm.close()
             except: fh.seek(start); chunk = fh.read(end - start)
 
-        for line in _iter_line_bytes(chunk):
-            t_lines += 1; b_ctr += 1
-            if b_ctr >= THROTTLE_BATCH: _throttle_tick(throttle); b_ctr = 0
+        for line, b_len in _iter_line_bytes(chunk):
+            t_lines += 1; b_ctr += 1; local_bytes += b_len
+            
+            if b_ctr >= THROTTLE_BATCH: 
+                _throttle_tick(throttle); b_ctr = 0
+                with progress_val.get_lock():
+                    progress_val.value += local_bytes
+                local_bytes = 0
 
             ts, ltype = fast_parse_timestamp(line)
             if not ts: continue
@@ -105,13 +150,14 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
             prev_ts = ts
             templates[log_template(line)] += 1
             
+        if local_bytes > 0:
+            with progress_val.get_lock(): progress_val.value += local_bytes
+            
     except Exception as exc: rq.put({"error": str(exc)}); return
     rq.put({"gaps": gaps, "ip_stats": ip_stats, "templates": dict(templates), "obf_cnt": obf_cnt,
             "t_lines": t_lines, "p_lines": p_lines, "log_type": log_type, "t_buckets": dict(t_buckets)})
 
-# (Implement `_worker_compressed` similarly from log.py if you want full gzip support inside engine.py)
-
-def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_threshold, result_queue, cpu_limit_pct, sigs) -> None:
+def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_threshold, result_queue, cpu_limit_pct, sigs, progress_val) -> None:
     try: os.nice(15)
     except: pass
     throttle = _throttle_init(cpu_limit_pct)
@@ -120,12 +166,18 @@ def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_thre
     total_lines, parsed_lines, obfuscated_cnt, batch_ctr = 0, 0, 0, 0
     prev_ts, log_type = None, None
     time_buckets = defaultdict(list)
+    local_lines = 0
 
     try:
         with opener(filepath, "rt", encoding="utf-8", errors="replace") as fh:
             for line_content in fh:
-                total_lines += 1; batch_ctr += 1
-                if batch_ctr >= THROTTLE_BATCH: _throttle_tick(throttle); batch_ctr = 0
+                total_lines += 1; batch_ctr += 1; local_lines += 1
+                if batch_ctr >= THROTTLE_BATCH: 
+                    _throttle_tick(throttle); batch_ctr = 0
+                    with progress_val.get_lock():
+                        progress_val.value += local_lines
+                    local_lines = 0
+
                 ts, ltype = fast_parse_timestamp(line_content)
                 if not ts: continue
                 parsed_lines += 1
@@ -151,6 +203,10 @@ def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_thre
                     time_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
                 prev_ts = ts
                 template_counts[log_template(line_content)] += 1
+                
+        if local_lines > 0:
+            with progress_val.get_lock(): progress_val.value += local_lines
+
     except Exception as exc:
         result_queue.put({"error": str(exc)}); return
     result_queue.put({"gaps": gaps, "ip_stats": ip_stats, "templates": dict(template_counts), "obf_cnt": obfuscated_cnt,
@@ -159,8 +215,8 @@ def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_thre
 def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_workers=1, cpu_limit_pct=25.0, sigs=()):
     t_start = time.monotonic()
     is_compressed = filepath.endswith((".gz", ".bz2"))
+    size = os.path.getsize(filepath)
     
-    # Baseline
     baseline_lines = []
     opener = (gzip.open if filepath.endswith(".gz") else bz2.open) if is_compressed else open
     mode = "rt" if is_compressed else "r"
@@ -178,12 +234,20 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
     rq = mp_ctx.Queue()
     procs = []
 
+    progress_val = mp_ctx.Value('d', 0.0)
+    done_event = threading.Event()
+    
+    monitor_thread = threading.Thread(
+        target=_progress_monitor, 
+        args=(progress_val, size, is_compressed, done_event),
+        daemon=True
+    )
+    monitor_thread.start()
+
     if is_compressed:
-        p = mp_ctx.Process(target=_worker_compressed, args=(filepath, threshold, ioc_set, eb_thresh, rq, cpu_limit_pct, sigs))
+        p = mp_ctx.Process(target=_worker_compressed, args=(filepath, threshold, ioc_set, eb_thresh, rq, cpu_limit_pct, sigs, progress_val))
         p.start(); procs.append(p); n_expected = 1
-        size = os.path.getsize(filepath) # For MB/s calc
     else:
-        size = os.path.getsize(filepath)
         chunk_size = max(CHUNK_MIN_BYTES, size // n_workers)
         chunks, start = [], 0
         with open(filepath, "rb") as fh:
@@ -196,7 +260,7 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
 
         n_expected = len(chunks)
         for s, e in chunks:
-            p = mp_ctx.Process(target=_worker, args=(filepath, s, e, threshold, ioc_set, eb_thresh, rq, cpu_limit_pct, sigs))
+            p = mp_ctx.Process(target=_worker, args=(filepath, s, e, threshold, ioc_set, eb_thresh, rq, cpu_limit_pct, sigs, progress_val))
             p.start(); procs.append(p)
 
     merged_gaps, merged_ip_stats, merged_templates = [], {}, Counter()
@@ -210,7 +274,6 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
         t_lines += res["t_lines"]; p_lines += res["p_lines"]; obf_cnt += res["obf_cnt"]
         log_type = log_type or res["log_type"]
         merged_templates.update(res["templates"])
-        # ── FIX: merge t_buckets from each worker (was silently dropped before) ──
         for bucket_key, events in res["t_buckets"].items():
             t_buckets[bucket_key].extend(events)
         for ip, s in res["ip_stats"].items():
@@ -220,8 +283,10 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
                 merged_ip_stats[ip]["events"].extend(s["events"])
 
     for p in procs: p.join()
+    
+    done_event.set()
+    monitor_thread.join()
 
-    # Determine Threats
     dist_ips = set()
     for b, evs in t_buckets.items():
         fails = [(ip, f) for ip, f in evs if f]
