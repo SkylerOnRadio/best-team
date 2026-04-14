@@ -8,6 +8,9 @@ import threading
 import sys
 from collections import Counter, defaultdict, deque
 from typing import Dict, Set
+import psutil
+import os
+
 
 from config import (
     IP_PATTERN, ENTROPY_BASELINE_LINES, ENTROPY_ABS_MIN, ENTROPY_STD_MULTIPLIER, 
@@ -19,6 +22,17 @@ from intelligence import (
     compute_entropy_baseline, calculate_entropy, fast_parse_timestamp, 
     log_template, session_reconstruct, risk_zones
 )
+
+#This function is used to lower priority to stop the function freeze in windows as the workers are sleeping most of the time, this is a workaround to that issue.
+def _set_low_priority():
+    try:
+        p = psutil.Process(os.getpid())
+        if os.name == 'nt':
+            p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS) # Windows
+        else:
+            p.nice(15) # Unix
+    except:
+        pass
 
 def load_ioc_feed(ioc_path: str) -> Set[str]:
     known_bad = set()

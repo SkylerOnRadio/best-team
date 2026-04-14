@@ -2,6 +2,13 @@ import os
 import re
 import sys
 from datetime import datetime
+import colorama
+
+# Initialize colorama to translate ANSI codes for Windows Command Prompt
+colorama.init() 
+
+# Now you can safely enable colors for everyone
+USE_COLOUR = sys.stdout.isatty()
 
 # ── ANSI colour codes ────────────────────────────────────────────────────────
 USE_COLOUR = sys.stdout.isatty() and os.name != "nt"
