@@ -3,7 +3,12 @@ import json
 import os
 import html
 from datetime import datetime
-
+# Add these new imports at the top of reporting.py
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.columns import Columns
+from rich import box
 from config import (
     C, PROJECT_NAME, PROJECT_VERSION, KILL_CHAIN_STAGES, 
     DISTRIBUTED_ATTACK_WINDOW, ENTROPY_BASELINE_LINES
@@ -39,106 +44,143 @@ def print_banner():
 {S}╚═════╝  ╚══════╝    ╚═╝    ╚══════╝  ╚═════╝    ╚═╝     ╚═════╝  ╚═╝  ╚═╝{R}
 """)
 
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.table import Table
+from rich.columns import Columns
+from rich import box
+from rich.align import Align
+from rich.text import Text
+
+# ... [Keep your print_banner() and other imports here] ...
+
 def report_terminal(result: dict, filepath: str):
+    console = Console()
+    
+    # ─── EXTRACT DATA ─────────────────────────────────────────────────────────
     risk     = _risk_score(result["gaps"], result["threats"])
-    risk_col = C.RED if risk >= 75 else (C.YELLOW if risk >= 40 else C.GREEN)
+    risk_col = "red" if risk >= 75 else ("dark_orange" if risk >= 40 else "green")
     perf     = result["performance"]
     stats    = result["stats"]
     eb       = result["entropy_baseline"]
     sys_info = get_system_metadata()
 
-    W = 79
-    print(f"\n{C.BOLD}{'━'*W}{C.RESET}")
-    print_banner()
-    print(f" {C.BOLD}Foreign Threat Analysis | v{PROJECT_VERSION}{C.RESET}")
-    print(f"{C.BOLD}{'━'*W}{C.RESET}")
+    # ─── THE ORIGINAL BANNER ──────────────────────────────────────────────────
+    print("\n")
+    print_banner() # Call your original ASCII art function directly
+    
+    # Add a clean sub-header using rich
+    console.print(f"  [bold cyan]Foreign Threat Analysis | v{PROJECT_VERSION}[/]")
+    console.print(f"  [dim]Target: {filepath}[/]\n")
 
-    print(f" {C.BOLD}[SYSTEM CONTEXT]{C.RESET}               {C.BOLD}[PERFORMANCE]{C.RESET}")
-    print(f"  Host : {sys_info['host']:<25} Time  : {perf['time']}s")
-    print(f"  OS   : {sys_info['os']:<25} Rate  : {perf['lps']:,} lines/sec")
-    print(f"  Type : {stats['log_type']:<25} Speed : {perf['mbps']} MB/s")
-    print(f"  Parse: {stats['parsed']:,} / {stats['total']:,} lines{'':<5} Workers: {perf['workers']}  CPU cap: {perf['cpu_limit']:.0f}%")
+    # ─── ROW 1: METRICS (4 Columns) ───────────────────────────────────────────
+    def make_metric(title, value, style="white"):
+        return Panel(Align.center(Text(str(value), style=style, justify="center")), title=title, box=box.ROUNDED)
 
-    print(f"\n {C.BOLD}[ENTROPY BASELINE]{C.RESET}")
-    print(f"  Mean={eb['mean']:.3f}  StdDev={eb['std']:.3f}  "
-          f"Dynamic Threshold={C.YELLOW}{eb['threshold']:.3f}{C.RESET}  "
-          f"(calibrated on first {ENTROPY_BASELINE_LINES} lines)")
+    metrics = Columns([
+        make_metric("Parsed Lines", f"{stats['parsed']:,}", "bold blue"),
+        make_metric("Throughput", f"{perf['mbps']} MB/s", "bold green"),
+        make_metric("Processing Time", f"{perf['time']}s", "bold yellow"),
+        make_metric("Active Workers", f"{perf['workers']}", "bold magenta"),
+    ], expand=True)
+    console.print(metrics)
 
-    print(f"\n {C.BOLD}[RISK ASSESSMENT]{C.RESET}")
-    print(f"  Probability of Compromise: {risk_col}{C.BOLD}{risk:>3}%{C.RESET}  "
-          f"{risk_col}{_bar(risk, 100, width=42)}{C.RESET}")
+    # ─── ROW 2: RISK & INTELLIGENCE ───────────────────────────────────────────
+    # Left Side: System & Risk
+    sys_table = Table.grid(padding=(0, 2))
+    sys_table.add_column(style="dim", justify="right")
+    sys_table.add_column(style="bold white")
+    sys_table.add_row("Hostname:", sys_info['host'])
+    sys_table.add_row("Log Type:", stats['log_type'])
+    sys_table.add_row("CPU Cap:", f"{perf['cpu_limit']:.0f}%")
+    
+    bar_len = 40
+    filled = int((risk / 100) * bar_len)
+    risk_bar = "█" * filled + "░" * (bar_len - filled)
+    
+    sys_group = Group(
+        sys_table,
+        Text("\nSystem Compromise Probability:", style="bold"),
+        Text(f"{risk:>3}% {risk_bar}", style=f"bold {risk_col}")
+    )
+    
+    # Right Side: Findings Summary
+    ioc_count = sum(1 for t in result["threats"] if t.get("is_ioc"))
+    find_table = Table.grid(padding=(0, 2))
+    find_table.add_column(style="bold white")
+    find_table.add_column()
+    
+    find_table.add_row("Timeline Anomalies:", f"[red]{len(result['gaps'])}[/]" if result['gaps'] else "[green]0[/]")
+    find_table.add_row("Active Entities:", f"[{'red' if len(result['threats']) > 3 else 'dark_orange'}]{len(result['threats'])}[/]")
+    find_table.add_row("Obfuscated Payloads:", f"[yellow]{stats['obfuscated']}[/]")
+    find_table.add_row("Rare Templates:", f"[magenta]{stats['rare_templates']}[/]")
+    find_table.add_row("IOC Feed Matches:", f"[red]{ioc_count}[/]" if ioc_count else "[green]0[/]")
+    find_table.add_row("Entropy Threshold:", f"[dim]Θ=[/][yellow]{eb['threshold']:.3f}[/]")
 
-    # Per-zone breakdown — only show zones with non-zero probability so the
-    # display stays clean on benign logs.
-    zone_labels = {
-        "integrity":    "Integrity   ",
-        "access":       "Access      ",
-        "persistence":  "Persistence ",
-        "privacy":      "Privacy     ",
-        "continuity":   "Continuity  ",
-        "exfiltration": "Exfiltration",
-        "lateral":      "Lateral Mvmt",
-    }
-    breakdown = result.get("risk_breakdown", {})
-    active_zones = [(z, p) for z, p in breakdown.items() if p > 0.0]
-    if active_zones:
-        print(f"\n {C.BOLD}[RISK ZONES]{C.RESET}")
-        for z, p in active_zones:
-            pct = int(p * 100)
-            z_col = C.RED if pct >= 75 else (C.YELLOW if pct >= 40 else C.GREEN)
-            print(f"  {zone_labels.get(z, z)}  {z_col}{pct:>3}%{C.RESET}  "
-                  f"{z_col}{_bar(pct, 100, width=30)}{C.RESET}")
+    console.print(Columns([
+        Panel(sys_group, title="[bold]System Intelligence[/]", box=box.ROUNDED, border_style=risk_col),
+        Panel(find_table, title="[bold]Forensic Overview[/]", box=box.ROUNDED, border_style="magenta")
+    ], expand=True))
 
+    # ─── ALERTS SECTION ───────────────────────────────────────────────────────
+    alerts = []
     kc_actors = [t for t in result["threats"] if "KILL_CHAIN_DETECTED" in t["risk_tags"]]
-    if kc_actors:
-        print(f"\n {C.BOLD}{C.RED}[⚠  KILL-CHAIN CONFIRMED]{C.RESET}")
-        for kc in kc_actors[:3]:
-            stage_str = " → ".join(s for s in KILL_CHAIN_STAGES if s in kc["risk_tags"])
-            print(f"  {C.RED}{kc['ip']:<16}{C.RESET}  stages={kc['kill_chain_score']}  {C.DIM}{stage_str}{C.RESET}")
-
+    for kc in kc_actors[:3]:
+        alerts.append(f"[bold red]⚠ KILL-CHAIN CONFIRMED:[/] {kc['ip']} (Progression Stages: {kc['kill_chain_score']})")
+    
     dist_actors = [t for t in result["threats"] if "DISTRIBUTED_ATTACK" in t["risk_tags"]]
     if dist_actors:
-        print(f"\n {C.BOLD}{C.YELLOW}[🌐 DISTRIBUTED ATTACK DETECTED]{C.RESET}")
-        print(f"  {len(dist_actors)} IPs participated in coordinated login storm")
+        alerts.append(f"[bold dark_orange]🌐 DISTRIBUTED ATTACK:[/] {len(dist_actors)} IPs in coordinated swarm")
+        
+    if alerts:
+        console.print(Panel("\n".join(alerts), box=box.HEAVY, border_style="red"))
 
-    print(f"\n {C.BOLD}[FORENSIC FINDINGS]{C.RESET}")
-    gap_col    = C.RED if result["gaps"] else C.GREEN
-    threat_col = C.RED if len(result["threats"]) > 3 else (C.YELLOW if result["threats"] else C.GREEN)
-    ioc_count  = sum(1 for t in result["threats"] if t.get("is_ioc"))
-
-    print(f"  Timeline Integrity  : {gap_col}{len(result['gaps']):>3} anomalies detected{C.RESET}")
-    print(f"  Threat Entities     : {threat_col}{len(result['threats']):>3} active actors{C.RESET}")
-    print(f"  Obfuscation Markers : {C.YELLOW}{stats['obfuscated']:>3} suspicious payloads{C.RESET}")
-    print(f"  Rare Log Templates  : {C.MAGENTA}{stats['rare_templates']:>3} anomalous structures{C.RESET}")
-    print(f"  IOC Feed Matches    : {C.RED if ioc_count else C.GREEN}{ioc_count:>3} known-malicious IPs{C.RESET}")
-    if result.get("compare"):
-        print(f"  New Actors (compare): {C.YELLOW}{result['compare']['count']:>3} previously unseen IPs{C.RESET}")
-
+    # ─── TOP THREAT ACTORS TABLE ──────────────────────────────────────────────
     if result["threats"]:
-        print(f"\n {C.BOLD}[TOP THREAT ACTORS]{C.RESET}")
-        print(f"  {'ENTITY (IP)':<17}| {'HITS':<7}| {'KC':<4}| {'SESS':<5}| RISK INDICATORS")
-        print(f"  {'-'*17}+-{'-'*7}+-{'-'*4}+-{'-'*5}+-{'-'*38}")
-        sorted_threats = sorted(result["threats"],
-                                key=lambda x: (x["kill_chain_score"], x["hits"]),
-                                reverse=True)
-        for t in sorted_threats[:8]:
+        threat_tb = Table(box=box.ROUNDED, expand=True, border_style="cyan", header_style="bold cyan")
+        threat_tb.add_column("Threat Entity (IP)", justify="left")
+        threat_tb.add_column("Hits", justify="right")
+        threat_tb.add_column("KC", justify="center")
+        threat_tb.add_column("Sessions", justify="center")
+        threat_tb.add_column("Risk Indicators", style="dim")
+        
+        sorted_threats = sorted(result["threats"], key=lambda x: (x["kill_chain_score"], x["hits"]), reverse=True)[:8]
+        for t in sorted_threats:
             tags_str = ", ".join(t["risk_tags"][:3])
-            ioc_flag = f" {C.RED}[IOC]{C.RESET}" if t.get("is_ioc") else ""
-            kc_col   = C.RED if t["kill_chain_score"] >= 3 else C.YELLOW
-            print(f"  {C.YELLOW}{t['ip']:<17}{C.RESET}| {t['hits']:<7}| "
-                  f"{kc_col}{t['kill_chain_score']:<4}{C.RESET}| "
-                  f"{t['session_count']:<5}| {C.GREY}{tags_str}{C.RESET}{ioc_flag}")
+            ioc_flag = " [red]\\[IOC][/]" if t.get("is_ioc") else ""
+            
+            # Highlight highly dangerous IPs
+            ip_style = "bold red" if t["kill_chain_score"] >= 3 else "yellow"
+            kc_style = "bold white on red" if t["kill_chain_score"] >= 3 else "dark_orange"
+            
+            threat_tb.add_row(
+                f"[{ip_style}]{t['ip']}[/]", 
+                str(t['hits']), 
+                f"[{kc_style}] {t['kill_chain_score']} [/]", 
+                str(t['session_count']), 
+                f"{tags_str}{ioc_flag}"
+            )
+        console.print(threat_tb)
 
+    # ─── TIMELINE ANOMALIES TABLE ─────────────────────────────────────────────
     if result["gaps"]:
-        print(f"\n {C.BOLD}[TIMELINE ANOMALIES]{C.RESET}")
-        print(f"  {'TYPE':<10} {'SEVERITY':<10} {'DURATION':<20} LINES")
-        print(f"  {'-'*10} {'-'*10} {'-'*20} {'-'*15}")
+        gap_tb = Table(box=box.ROUNDED, expand=True, border_style="red", header_style="bold red")
+        gap_tb.add_column("Anomaly Type")
+        gap_tb.add_column("Severity")
+        gap_tb.add_column("Duration (H:M:S)")
+        gap_tb.add_column("Line Coordinates")
+        
         for g in result["gaps"][:6]:
-            sev_col = C.RED if g["severity"] == "CRITICAL" else C.YELLOW
-            print(f"  {g['type']:<10} {sev_col}{g['severity']:<10}{C.RESET} "
-                  f"{g.get('duration_human','N/A'):<20} {g['start_line']}-{g['end_line']}")
+            sev_col = "bold white on red" if g["severity"] == "CRITICAL" else "dark_orange"
+            gap_tb.add_row(
+                g['type'], 
+                f"[{sev_col}] {g['severity']} [/]", 
+                g.get('duration_human','N/A'), 
+                f"L:{g['start_line']} → L:{g['end_line']}"
+            )
+        console.print(gap_tb)
 
-    print(f"\n{C.BOLD}{'━'*W}{C.RESET}\n")
+    console.print()
 
 def report_csv_integrity(result: dict, path: str):
     fields = ["type", "gap_start", "gap_end", "duration_human",
