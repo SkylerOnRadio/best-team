@@ -304,6 +304,9 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
             else:
                 merged_ip_stats[ip]["hits"] += s["hits"]; merged_ip_stats[ip]["tags"].update(s["tags"])
                 merged_ip_stats[ip]["events"].extend(s["events"])
+                #using min max we make sure to use the most accurate timeframe of an IP's activity
+                merged_ip_stats[ip]["first"] = min(merged_ip_stats[ip]["first"], s["first"])
+                merged_ip_stats[ip]["last"] = max(merged_ip_stats[ip]["last"], s["last"])
                 #all failed logins accross the diffrent CPU cores are properly combined
                 merged_ip_stats[ip]["fails"].extend(s["fails"])
 
