@@ -156,7 +156,10 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
                 for tag, sig in sigs:
                     if sig.search(line):
                         s["tags"].add(tag)
-                        if tag == "FAILED_LOGIN": is_fail = True
+                        if tag == "FAILED_LOGIN": 
+                            is_fail = True
+                            #Only the exact timestamp of an actual failed login is saved to the deque
+                            s["fails"].append(ts)
                 if ip in ioc_set: s["tags"].add("KNOWN_MALICIOUS_IOC")
                 if calculate_entropy(line) > entropy_thresh: s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obf_cnt += 1
                 t_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
@@ -295,6 +298,8 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
             else:
                 merged_ip_stats[ip]["hits"] += s["hits"]; merged_ip_stats[ip]["tags"].update(s["tags"])
                 merged_ip_stats[ip]["events"].extend(s["events"])
+                #all failed logins accross the diffrent CPU cores are properly combined
+                merged_ip_stats[ip]["fails"].extend(s["fails"])
 
     for p in procs: p.join()
     
@@ -309,7 +314,8 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
 
     final_threats = []
     for ip, s in merged_ip_stats.items():
-        fails = sorted([e for e in s["events"] if "FAILED_LOGIN" in s["tags"]])
+        #simply grabs the failed login and leaves the rest away
+        fails = sorted(s.get("fails", []))
         if len(fails) >= BRUTE_FORCE_THRESHOLD and (fails[-1] - fails[0]).total_seconds() < (BRUTE_FORCE_WINDOW_MIN * 60):
             s["tags"].add("BRUTE_FORCE_BURST")
         if ip in dist_ips: s["tags"].add("DISTRIBUTED_ATTACK")
