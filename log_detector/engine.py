@@ -111,14 +111,66 @@ def _progress_monitor(progress_val, total_bytes, is_compressed, done_event):
     sys.stdout.write("\r" + " " * 110 + "\r")
     sys.stdout.flush()
 
+def _process_lines(line_iter, threshold, ioc_set, entropy_thresh, sigs, throttle, progress_val):
+    gaps, ip_stats, templates = [], {}, Counter()
+    t_lines, p_lines, obf_cnt, b_ctr, log_type, prev_ts, first_ts = 0, 0, 0, 0, None, None, None
+    t_buckets = defaultdict(list)
+    local_progress = 0
+
+    for line_content, prog_amt in line_iter:
+        t_lines += 1; b_ctr += 1; local_progress += prog_amt
+        
+        if b_ctr >= THROTTLE_BATCH: 
+            _throttle_tick(throttle); b_ctr = 0
+            with progress_val.get_lock():
+                progress_val.value += local_progress
+            local_progress = 0
+
+        ts, ltype = fast_parse_timestamp(line_content)
+        if not ts: continue
+        if not first_ts: first_ts = ts
+        p_lines += 1; log_type = log_type or ltype
+
+        if prev_ts:
+            diff = (ts - prev_ts).total_seconds()
+            if diff >= threshold or diff < -10:
+                gaps.append({"type": "GAP" if diff > 0 else "REVERSED", "gap_start": prev_ts.isoformat(), 
+                             "gap_end": ts.isoformat(), "duration_human": str(ts-prev_ts), "duration_seconds": diff, 
+                             "severity": "CRITICAL" if diff > 3600 else "HIGH", "start_line": t_lines, "end_line": t_lines + 1})
+
+        ip_m = IP_PATTERN.search(line_content)
+        if ip_m:
+            ip = ip_m.group()
+            if ip not in ip_stats: ip_stats[ip] = {"first": ts, "last": ts, "hits": 0, "fails": deque(maxlen=50), "events": [], "tags": set()}
+            s = ip_stats[ip]; s["hits"] += 1; s["last"] = ts; s["events"].append(ts)
+            is_fail = False
+            for tag, sig in sigs:
+                if sig.search(line_content):
+                    s["tags"].add(tag)
+                    if tag == "FAILED_LOGIN": 
+                        is_fail = True
+                        s["fails"].append(ts)
+            if ip in ioc_set: s["tags"].add("KNOWN_MALICIOUS_IOC")
+            if calculate_entropy(line_content) > entropy_thresh: s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obf_cnt += 1
+            t_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
+
+        prev_ts = ts
+        templates[log_template(line_content)] += 1
+        
+    if local_progress > 0:
+        with progress_val.get_lock(): progress_val.value += local_progress
+        
+    return {
+        "gaps": gaps, "ip_stats": ip_stats, "templates": dict(templates), "obf_cnt": obf_cnt,
+        "t_lines": t_lines, "p_lines": p_lines, "log_type": log_type, "t_buckets": dict(t_buckets),
+        "first_ts": first_ts, "last_ts": prev_ts
+    }
+
+
 def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_limit, sigs, progress_val):
     try: os.nice(15)
     except: pass
     throttle = _throttle_init(cpu_limit)
-    gaps, ip_stats, templates = [], {}, Counter()
-    t_lines, p_lines, obf_cnt, b_ctr, log_type, prev_ts, first_ts = 0, 0, 0, 0, None, None, None
-    t_buckets = defaultdict(list)
-    local_bytes = 0
 
     try:
         with open(filepath, "rb") as fh:
@@ -127,113 +179,26 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
                 mm.seek(start); chunk = mm.read(end - start); mm.close()
             except: fh.seek(start); chunk = fh.read(end - start)
 
-        for line, b_len in _iter_line_bytes(chunk):
-            t_lines += 1; b_ctr += 1; local_bytes += b_len
-            
-            if b_ctr >= THROTTLE_BATCH: 
-                _throttle_tick(throttle); b_ctr = 0
-                with progress_val.get_lock():
-                    progress_val.value += local_bytes
-                local_bytes = 0
+        res = _process_lines(_iter_line_bytes(chunk), threshold, ioc_set, entropy_thresh, sigs, throttle, progress_val)
+        res["start_offset"] = start
+        rq.put(res)
+    except Exception as exc: 
+        rq.put({"error": str(exc)})
 
-            ts, ltype = fast_parse_timestamp(line)
-            if not ts: continue
-            #captures the fisrt timestamp in the chunk
-            if not first_ts: first_ts = ts
-            p_lines += 1; log_type = log_type or ltype
 
-            if prev_ts:
-                diff = (ts - prev_ts).total_seconds()
-                if diff >= threshold or diff < -10:
-                    gaps.append({"type": "GAP" if diff > 0 else "REVERSED", "gap_start": prev_ts.isoformat(), 
-                                 "gap_end": ts.isoformat(), "duration_human": str(ts-prev_ts), "duration_seconds": diff, 
-                                 "severity": "CRITICAL" if diff > 3600 else "HIGH", "start_line": t_lines, "end_line": t_lines + 1})
-
-            ip_m = IP_PATTERN.search(line)
-            if ip_m:
-                ip = ip_m.group()
-                if ip not in ip_stats: ip_stats[ip] = {"first": ts, "last": ts, "hits": 0, "fails": deque(maxlen=50), "events": [], "tags": set()}
-                s = ip_stats[ip]; s["hits"] += 1; s["last"] = ts; s["events"].append(ts)
-                is_fail = False
-                for tag, sig in sigs:
-                    if sig.search(line):
-                        s["tags"].add(tag)
-                        if tag == "FAILED_LOGIN": 
-                            is_fail = True
-                            #Only the exact timestamp of an actual failed login is saved to the deque
-                            s["fails"].append(ts)
-                if ip in ioc_set: s["tags"].add("KNOWN_MALICIOUS_IOC")
-                if calculate_entropy(line) > entropy_thresh: s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obf_cnt += 1
-                t_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
-
-            prev_ts = ts
-            templates[log_template(line)] += 1
-            
-        if local_bytes > 0:
-            with progress_val.get_lock(): progress_val.value += local_bytes
-            
-    except Exception as exc: rq.put({"error": str(exc)}); return
-    rq.put({"gaps": gaps, "ip_stats": ip_stats, "templates": dict(templates), "obf_cnt": obf_cnt,
-            "t_lines": t_lines, "p_lines": p_lines, "log_type": log_type, "t_buckets": dict(t_buckets),
-            "first_ts": first_ts, "last_ts": prev_ts, "start_offset": start})
-
-def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_threshold, result_queue, cpu_limit_pct, sigs, progress_val) -> None:
+def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_threshold, result_queue, cpu_limit_pct, sigs, progress_val):
     try: os.nice(15)
     except: pass
     throttle = _throttle_init(cpu_limit_pct)
     opener = gzip.open if filepath.endswith(".gz") else bz2.open
-    gaps, ip_stats, template_counts = [], {}, Counter()
-    total_lines, parsed_lines, obfuscated_cnt, batch_ctr = 0, 0, 0, 0
-    prev_ts, log_type = None, None
-    time_buckets = defaultdict(list)
-    local_lines = 0
 
     try:
         with opener(filepath, "rt", encoding="utf-8", errors="replace") as fh:
-            for line_content in fh:
-                total_lines += 1; batch_ctr += 1; local_lines += 1
-                if batch_ctr >= THROTTLE_BATCH: 
-                    _throttle_tick(throttle); batch_ctr = 0
-                    with progress_val.get_lock():
-                        progress_val.value += local_lines
-                    local_lines = 0
-
-                ts, ltype = fast_parse_timestamp(line_content)
-                if not ts: continue
-                parsed_lines += 1
-                if not log_type: log_type = ltype
-                if prev_ts:
-                    diff = (ts - prev_ts).total_seconds()
-                    if diff >= threshold_seconds or diff < -10:
-                        gaps.append({"type": "GAP" if diff > 0 else "REVERSED", "gap_start": prev_ts.isoformat(), 
-                                     "gap_end": ts.isoformat(), "duration_human": str(ts-prev_ts), "duration_seconds": diff, 
-                                     "severity": "CRITICAL" if diff > 3600 else "HIGH", "start_line": total_lines, "end_line": total_lines + 1})
-                ip_m = IP_PATTERN.search(line_content)
-                if ip_m:
-                    ip = ip_m.group()
-                    if ip not in ip_stats: ip_stats[ip] = {"first": ts, "last": ts, "hits": 0, "fails": deque(maxlen=50), "events": [], "tags": set()}
-                    s = ip_stats[ip]; s["hits"] += 1; s["last"] = ts; s["events"].append(ts)
-                    is_fail = False
-                    for tag, sig in sigs:
-                        if sig.search(line_content):
-                            s["tags"].add(tag)
-                            if tag == "FAILED_LOGIN": 
-                                is_fail = True
-                                #adding the timestamp to fails ensure proper evaluation the timing between failed logins
-                                s["fails"].append(ts)
-                    if ip in ioc_set_frozen: s["tags"].add("KNOWN_MALICIOUS_IOC")
-                    if calculate_entropy(line_content) > entropy_threshold: s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obfuscated_cnt += 1
-                    time_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
-                prev_ts = ts
-                template_counts[log_template(line_content)] += 1
-                
-        if local_lines > 0:
-            with progress_val.get_lock(): progress_val.value += local_lines
-
+            line_iter = ((line, 1) for line in fh)
+            res = _process_lines(line_iter, threshold_seconds, ioc_set_frozen, entropy_threshold, sigs, throttle, progress_val)
+            result_queue.put(res)
     except Exception as exc:
-        result_queue.put({"error": str(exc)}); return
-    result_queue.put({"gaps": gaps, "ip_stats": ip_stats, "templates": dict(template_counts), "obf_cnt": obfuscated_cnt,
-                      "t_lines": total_lines, "p_lines": parsed_lines, "log_type": log_type, "t_buckets": dict(time_buckets)})
+        result_queue.put({"error": str(exc)})
 
 def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_workers=1, cpu_limit_pct=25.0, sigs=()):
     if compare_filepath:
