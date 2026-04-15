@@ -116,7 +116,7 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
     except: pass
     throttle = _throttle_init(cpu_limit)
     gaps, ip_stats, templates = [], {}, Counter()
-    t_lines, p_lines, obf_cnt, b_ctr, log_type, prev_ts = 0, 0, 0, 0, None, None
+    t_lines, p_lines, obf_cnt, b_ctr, log_type, prev_ts, first_ts = 0, 0, 0, 0, None, None, None
     t_buckets = defaultdict(list)
     local_bytes = 0
 
@@ -138,6 +138,8 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
 
             ts, ltype = fast_parse_timestamp(line)
             if not ts: continue
+            #captures the fisrt timestamp in the chunk
+            if not first_ts: first_ts = ts
             p_lines += 1; log_type = log_type or ltype
 
             if prev_ts:
@@ -172,7 +174,8 @@ def _worker(filepath, start, end, threshold, ioc_set, entropy_thresh, rq, cpu_li
             
     except Exception as exc: rq.put({"error": str(exc)}); return
     rq.put({"gaps": gaps, "ip_stats": ip_stats, "templates": dict(templates), "obf_cnt": obf_cnt,
-            "t_lines": t_lines, "p_lines": p_lines, "log_type": log_type, "t_buckets": dict(t_buckets)})
+            "t_lines": t_lines, "p_lines": p_lines, "log_type": log_type, "t_buckets": dict(t_buckets),
+            "first_ts": first_ts, "last_ts": prev_ts, "start_offset": start})
 
 def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_threshold, result_queue, cpu_limit_pct, sigs, progress_val) -> None:
     try: os.nice(15)
@@ -283,6 +286,7 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
     merged_gaps, merged_ip_stats, merged_templates = [], {}, Counter()
     t_lines, p_lines, obf_cnt, log_type = 0, 0, 0, None
     t_buckets = defaultdict(list)
+    chunk_boundaries = []
     
     for _ in range(n_expected):
         res = rq.get()
@@ -293,6 +297,8 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
         merged_templates.update(res["templates"])
         for bucket_key, events in res["t_buckets"].items():
             t_buckets[bucket_key].extend(events)
+        if "start_offset" in res:
+            chunk_boundaries.append((res['start_offset'], res.get("first_ts"), res.get("last_ts")))
         for ip, s in res["ip_stats"].items():
             if ip not in merged_ip_stats: merged_ip_stats[ip] = s
             else:
@@ -305,6 +311,17 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
     
     done_event.set()
     monitor_thread.join()
+
+    #sort them based on the initial chunk offset
+    chunk_boundaries.sort(key=lambda x : x[0])
+    #evaluate the distance between the last timestamp of chunk N and the first timestamp of chunk N+1 to identify anamolous gaps
+    for i in range(len(chunk_boundaries) - 1):
+        _, _, last_ts = chunk_boundaries[i]
+        _, next_first_ts, _ = chunk_boundaries[i+1]
+        if last_ts and next_first_ts:
+            diff = (next_first_ts - last_ts).total_seconds()
+            if diff >= threshold or diff < -10:
+                merged_gaps.append({"type" : "GAP" if diff > 0 else "REVERSED", "gap_start" : last_ts.isoformat(), "gap_end": next_first_ts.isoformat(), "duration_human" : str(next_first_ts), "duration_seconds": diff, "severity": "CRITICAL" if diff > 3600 else "HIGH", "start_line": "Boundary", "end_line": "Boundary"})
 
     dist_ips = set()
     for b, evs in t_buckets.items():
