@@ -217,7 +217,10 @@ def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_thre
                     for tag, sig in sigs:
                         if sig.search(line_content):
                             s["tags"].add(tag)
-                            if tag == "FAILED_LOGIN": is_fail = True
+                            if tag == "FAILED_LOGIN": 
+                                is_fail = True
+                                #adding the timestamp to fails ensure proper evaluation the timing between failed logins
+                                s["fails"].append(ts)
                     if ip in ioc_set_frozen: s["tags"].add("KNOWN_MALICIOUS_IOC")
                     if calculate_entropy(line_content) > entropy_threshold: s["tags"].add("HIGH_ENTROPY_PAYLOAD"); obfuscated_cnt += 1
                     time_buckets[int(ts.timestamp() // DISTRIBUTED_ATTACK_WINDOW)].append((ip, is_fail))
@@ -233,6 +236,8 @@ def _worker_compressed(filepath, threshold_seconds, ioc_set_frozen, entropy_thre
                       "t_lines": total_lines, "p_lines": parsed_lines, "log_type": log_type, "t_buckets": dict(time_buckets)})
 
 def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_workers=1, cpu_limit_pct=25.0, sigs=()):
+    if compare_filepath:
+        raise NotImplementedError('--compare is not implemented yet in this this version.')
     t_start = time.monotonic()
     is_compressed = filepath.endswith((".gz", ".bz2"))
     size = os.path.getsize(filepath)
