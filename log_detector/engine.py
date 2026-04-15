@@ -95,7 +95,7 @@ def _progress_monitor(progress_val, total_bytes, is_compressed, done_event):
             msgs = ["Extracting stream...", "Parsing timeline...", "Calculating entropy...", "Matching signatures...", "Reconstructing sessions..."]
             msg = msgs[cycle]
             rate = val / elapsed if elapsed > 0 else 0
-            sys.stdout.write(f"\r{C.CYAN}[*]{C.RESET} {msg:<25} | {C.BOLD}{int(val):,}{C.RESET} lines [{int(rate):,} l/s]    ")
+            print(f"\r\033[K{C.CYAN}[*]{C.RESET} {msg:<25} | {C.BOLD}{int(val):,}{C.RESET} lines [{int(rate):,} l/s]    ", end = "", flush=True)
         else:
             pct = (val / total_bytes) * 100 if total_bytes > 0 else 0
             pct = min(100.0, pct)
@@ -105,8 +105,8 @@ def _progress_monitor(progress_val, total_bytes, is_compressed, done_event):
             filled = int(bar_len * pct / 100)
             bar = '█' * filled + '░' * (bar_len - filled)
             rate_mb = (val / 1e6) / elapsed if elapsed > 0 else 0
-            sys.stdout.write(f"\r{C.CYAN}[*]{C.RESET} [{C.GREEN}{bar}{C.RESET}] {C.BOLD}{pct:>4.1f}%{C.RESET} | {rate_mb:>5.1f} MB/s | {C.DIM}{msg:<40}{C.RESET}")
-        sys.stdout.flush()
+            print(f"\r\033[K{C.CYAN}[*]{C.RESET} [{C.GREEN}{bar}{C.RESET}] {C.BOLD}{pct:>4.1f}%{C.RESET} | {rate_mb:>5.1f} MB/s | {C.DIM}{msg:<40}{C.RESET}", end="", flush=True)
+    print("\r\033[K", end = "", flush=True)
 
     sys.stdout.write("\r" + " " * 110 + "\r")
     sys.stdout.flush()
