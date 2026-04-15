@@ -255,7 +255,9 @@ def scan_log(filepath, threshold, ioc_set=frozenset(), compare_filepath=None, n_
     eb_mean, eb_std = compute_entropy_baseline(baseline_lines)
     eb_thresh = max(ENTROPY_ABS_MIN, eb_mean + ENTROPY_STD_MULTIPLIER * eb_std)
 
-    mp_ctx = multiprocessing.get_context("spawn")
+    #using "spawn" would force all os to use it, then the python interpreter has to reimport all modules and make a start for each child, this causes startup latency 
+    ctx_method = "spawn" if sys.platform == "win32" else "fork"
+    mp_ctx = multiprocessing.get_context(ctx_method)
     rq = mp_ctx.Queue()
     procs = []
 
