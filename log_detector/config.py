@@ -82,21 +82,6 @@ SIGS_FALLBACK = {
     "LATERAL_MOVEMENT": r"ssh.*@|scp |rsync |psexec|wmic|net use \\\\|xfreerdp|rdesktop|winrm|evil-winrm|impacket"
 }
 
-# ── Timestamp Regexes ─────────────────────────────────────────────────────────
-TIMESTAMP_REGEXES = [
-    (re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"),
-     ["%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
-      "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"], "ISO-8601"),
-    (re.compile(r"\[\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}\]"),
-     ["[%d/%b/%Y:%H:%M:%S %z]"], "Web (Apache/Nginx)"),
-    (re.compile(r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}"),
-     ["%b %d %H:%M:%S", "%b  %d %H:%M:%S"], "Linux Syslog"),
-    (re.compile(r"\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}"),
-     ["%m/%d/%Y %H:%M:%S"], "Windows Event"),
-    (re.compile(r"\d{10,13}"),
-     None, "Unix Epoch"),
-]
-
 # ── Tunable Parameters ────────────────────────────────────────────────────────
 BRUTE_FORCE_THRESHOLD      = 5
 BRUTE_FORCE_WINDOW_MIN     = 10
